@@ -17,13 +17,18 @@
 
 .text
 SETUP:	# Printa o background inicial
-	la a0, otaviano
+	la a0, mapa_fase1 
 	li a1, 0
 	li a2, 0
 	li a3, 0
 	call PRINT
 	li a3, 1
 	call PRINT
+	
+	la a0, hard_block
+	li a1, 40	
+	li a2, 32
+	call PRINT_HARD_BLOCKS
 	
 GAME_LOOP: 
 	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
@@ -87,7 +92,39 @@ PRINT_LINHA:
 	bgt t5, t2, PRINT_LINHA
 	
 	ret
+	
+PRINT_HARD_BLOCKS:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
 
+loop_phb:
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+	addi a1, a1, 32
+	
+	li t4, 288
+
+	# Fica preso nesse loop até a coluna chegar na largura d
+	blt a1, t4, loop_phb
+	
+	li a1, 40
+	
+	li t5, 208
+	
+	# Fica preso nesse loop até linha chegar na altura da imagem
+	addi a2, a2, 32
+	bgt t5, a2, loop_phb
+
+	li a2, 32
+	
+	lw ra, 4(sp)         # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
+		
+	ret
+	
 # Nesse procedimento, ele checa se o teclado foi apertado e se o 'o' ou 'f' foi a tecla apertada
 # Se for uma dessas duas opções, ele muda a imagem mostrada para a otaviano ou frogger respectivamente
 INPUT:
@@ -123,6 +160,10 @@ IMG_FROGGER:
 	ret
 
 .data
+.include "images/mapa_fase1.data"
+.include "images/hard_block.data"
+.include "images/tijolo_16x16.data"
+
 .include "images/otaviano.data"
 .include "images/frogger.data"
 
