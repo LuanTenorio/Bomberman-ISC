@@ -17,13 +17,24 @@
 
 .text
 SETUP:	# Printa o background inicial
-	la a0, otaviano
+	la a0, mapa_fase1 
 	li a1, 0
 	li a2, 0
 	li a3, 0
 	call PRINT
 	li a3, 1
 	call PRINT
+	
+	la a0, hard_block
+	li a1, 40	
+	li a2, 32
+	call PRINT_HARD_BLOCKS
+	
+	la a0, soft_block
+	li a1, 40	
+	li a2, 16
+	call PRINT_SOFT_BLOCKS
+	
 	
 GAME_LOOP: 
 	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
@@ -32,13 +43,48 @@ GAME_LOOP:
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
 	xori s0, s0, 1
 
-	call PRINT
+#	call PRINT
 	
 	# Altera o frame mostrado
 	li t0, 0xFF200604
 	sw s0, 0(t0)
 	
 	j GAME_LOOP
+	
+	
+# Nesse procedimento, ele checa se o teclado foi apertado e se o 'o' ou 'f' foi a tecla apertada
+# Se for uma dessas duas opções, ele muda a imagem mostrada para a otaviano ou frogger respectivamente
+INPUT:
+	li t1,0xFF200000		
+	lw t0,0(t1)			
+	andi t0,t0,0x0001		
+	beq t0, zero, FIM
+	lw t2, 4(t1)
+		
+
+	
+	# Para alterar o que ele faz quando houve uma tecla, basta mudar esses parâmetros e procedimentos chamados					
+	li t0, 'o'
+	beq t2, t0, IMG_OTAVIANO
+	
+	li t0, 'f'
+	beq t2, t0, IMG_FROGGER
+	
+FIM: 	ret
+
+IMG_OTAVIANO:
+	la a0, otaviano
+	li a1, 0
+	li a2, 0
+	mv a3, s0
+	ret
+	
+IMG_FROGGER:
+	la a0, frogger
+	li a1, 0
+	li a2, 0
+	mv a3, s0
+	ret
 
 PRINT: 
 	# Define o endereço inicial do bitmap display e qual frame vai usar
@@ -87,42 +133,116 @@ PRINT_LINHA:
 	bgt t5, t2, PRINT_LINHA
 	
 	ret
+	
+PRINT_HARD_BLOCKS:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
 
-# Nesse procedimento, ele checa se o teclado foi apertado e se o 'o' ou 'f' foi a tecla apertada
-# Se for uma dessas duas opções, ele muda a imagem mostrada para a otaviano ou frogger respectivamente
-INPUT:
-	li t1,0xFF200000		
-	lw t0,0(t1)			
-	andi t0,t0,0x0001		
-	beq t0, zero, FIM
-	lw t2, 4(t1)
+loop_phb:
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+	addi a1, a1, 32
+	
+	li t4, 288
+
+	# Fica preso nesse loop até a coluna chegar na largura d
+	blt a1, t4, loop_phb
+	
+	li a1, 40
+	
+	li t5, 224
+	
+	# Fica preso nesse loop até linha chegar na altura da imagem
+	addi a2, a2, 32
+	bgt t5, a2, loop_phb
+
+	li a2, 32
+	
+	lw ra, 4(sp)         # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
 		
-
-	
-	# Para alterar o que ele faz quando houve uma tecla, basta mudar esses parâmetros e procedimentos chamados					
-	li t0, 'o'
-	beq t2, t0, IMG_OTAVIANO
-	
-	li t0, 'f'
-	beq t2, t0, IMG_FROGGER
-	
-FIM: 	ret
-
-IMG_OTAVIANO:
-	la a0, otaviano
-	li a1, 0
-	li a2, 0
-	mv a3, s0
 	ret
 	
-IMG_FROGGER:
-	la a0, frogger
-	li a1, 0
-	li a2, 0
-	mv a3, s0
+PRINT_SOFT_BLOCKS:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
+
+loop_psb:
+	# Acha o resto da divisão da largura (largura - 40) e altura (altura  - 32) por 32
+	# Executa um or com esses restos e se ambas altura e largura forem divisiveis por 32, não printa o soft block
+	# Isso é necessário para que ele não seja printado em cima do hardblock
+	li t1, 40
+	sub t1, a1, t1
+
+	li t0, 32
+	rem t0, t1, t0
+
+	li t2, 32
+	sub t2, a2, t2
+
+	li t1, 32
+	rem t1, t2, t1
+	
+	or t0, t1, t0
+	beq t0, zero, skip
+	
+	
+	# Pega um número aleatório entre 0 e 4 e printa o softblock apenas se esse número for 0
+	# Isso é necessário para manter a aleatoriedade dos blocos que aparecem
+	# É necessário fazer uma forma mais organica disso. 
+	# Creio que seja necessário considerar a aleatoriedade ao redor de cada hardblock e não em todo o mapa discriminadamente
+	# Cada hardblock tem 4/5 de chance de printar 1 ou 2 softblock aleatoriamente ao seu redor por exemplo
+	
+	mv t4, a0
+	mv t5, a1  
+
+	li a1, 4
+	li a7, 42
+	ecall
+	mv t1, a0
+	
+	mv a0, t4
+	mv a1, t5
+	
+	bne t1, zero, skip
+	
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+skip:	addi a1, a1, 16
+	
+	li t4, 296
+
+	# Fica preso nesse loop até a coluna chegar na largura d
+	blt a1, t4, loop_psb
+	
+	li a1, 24
+	
+	li t5, 224
+	
+	# Fica preso nesse loop até linha chegar na altura da imagem
+	addi a2, a2, 16
+	bgt t5, a2, loop_psb
+
+	li a2, 16
+	
+	lw ra, 4(sp)         # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
+		
 	ret
+
 
 .data
+.include "images/mapa_fase1.data"
+.include "images/hard_block.data"
+.include "images/soft_block.data"
+.include "images/tijolo_16x16.data"
+
 .include "images/otaviano.data"
 .include "images/frogger.data"
 
