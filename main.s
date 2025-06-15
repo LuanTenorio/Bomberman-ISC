@@ -1,4 +1,5 @@
 .data
+	IMAGE_ORIGINAL: .word 0, 0, 0
 
 # --- Metadados dos registrados --
 #	a0 = endereço imagem (com tudo, pixeis e metadados)
@@ -29,11 +30,6 @@ SETUP:	# Printa o background inicial
 	li a1, 40	
 	li a2, 32
 	call PRINT_HARD_BLOCKS
-	
-	la a0, soft_block
-	li a1, 40	
-	li a2, 16
-	call PRINT_SOFT_BLOCKS
 	
 	
 GAME_LOOP: 
@@ -144,6 +140,18 @@ loop_phb:
 	li a3, 1
 	call PRINT
 
+	la t0, IMAGE_ORIGINAL
+	sw a0, 0(t0)
+	sw a1, 4(t0)
+	sw a2, 8(t0)
+
+	call PRINT_SOFT_BLOCKS
+
+	la t0, IMAGE_ORIGINAL
+	lw a0, 0(t0)
+	lw a1, 4(t0)
+	lw a2, 8(t0)
+
 	addi a1, a1, 32
 	
 	li t4, 288
@@ -167,27 +175,31 @@ loop_phb:
 	ret
 	
 PRINT_SOFT_BLOCKS:
+	la a0, soft_block
+	li t0, 16
+	sub a1, a1, t0
+	sub a2, a2, t0 
+	
 	addi sp, sp, -4     # reserva espaço na pilha
     	sw ra, 4(sp)         # salva return address
 
 loop_psb:
+
 	# Acha o resto da divisão da largura (largura - 40) e altura (altura  - 32) por 32
 	# Executa um or com esses restos e se ambas altura e largura forem divisiveis por 32, não printa o soft block
 	# Isso é necessário para que ele não seja printado em cima do hardblock
-	li t1, 40
-	sub t1, a1, t1
 
-	li t0, 32
-	rem t0, t1, t0
+	la t0, IMAGE_ORIGINAL
+	lw t1, 4(t0)
 
-	li t2, 32
-	sub t2, a2, t2
+	lw t2, 8(t0)
 
-	li t1, 32
-	rem t1, t2, t1
-	
-	or t0, t1, t0
-	beq t0, zero, skip
+	xor t1, a1, t1
+	xor t2, a2, t2
+
+	or t1, t1, t2
+
+	beq t1, zero, skip
 	
 	
 	# Pega um número aleatório entre 0 e 4 e printa o softblock apenas se esse número for 0
@@ -199,7 +211,7 @@ loop_psb:
 	mv t4, a0
 	mv t5, a1  
 
-	li a1, 4
+	li a1, 8
 	li a7, 42
 	ecall
 	mv t1, a0
@@ -214,25 +226,39 @@ loop_psb:
 	li a3, 1
 	call PRINT
 
-skip:	addi a1, a1, 16
-	
-	li t4, 296
+skip:	
+	addi a1, a1, 16
+
+	la t0, IMAGE_ORIGINAL
+	lw t0, 4(t0)
+	li t4, 16
+	sub t0, t0, t4
+
+	addi t4, t0, 48
 
 	# Fica preso nesse loop até a coluna chegar na largura d
 	blt a1, t4, loop_psb
 	
-	li a1, 24
-	
-	li t5, 224
+	la t0, IMAGE_ORIGINAL
+	lw a1, 4(t0)	
+	li t4, 16
+	sub a1, a1, t4
+
+	lw t0, 8(t0)
+	li t5, 16
+	sub t4, t0, t5
+
+	addi t5, t4, 48
 	
 	# Fica preso nesse loop até linha chegar na altura da imagem
 	addi a2, a2, 16
 	bgt t5, a2, loop_psb
 
-	li a2, 16
+	la t0, IMAGE_ORIGINAL
+	lw a2, 8(t0)
 	
 	lw ra, 4(sp)         # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
+    addi sp, sp, 4     # desloca o stack pointer
 		
 	ret
 
