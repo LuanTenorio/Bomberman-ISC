@@ -57,7 +57,7 @@ GAME_LOOP:
 	#limpa o frame
 	#Carrega o bomberman
 	la t0, OLD_BOMBER_POS
-	la a0, hard_block #Trocar para o chão
+	la a0, chao_do_mapa
 	lh a1, 0(t0)
 	lh a2, 2(t0)
 	
@@ -316,6 +316,7 @@ skip:	addi a1, a1, 16
 .data
 BOMBER_POS: .half 24, 16
 OLD_BOMBER_POS: .half 24, 16
+.include "images/chao_do_mapa.data"
 .include "images/mapa_fase1.data"
 .include "images/hard_block.data"
 .include "images/soft_block.data"
