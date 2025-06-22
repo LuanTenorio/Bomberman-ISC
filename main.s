@@ -1,13 +1,16 @@
 .data
 	IMAGE_ORIGINAL: .word 0, 0, 0 # Guarda o endereço da imagem e posições iniciais x e y respectivamente
-
-# --- Metadados dos registrados --
+	CONTADOR_MUSICA: .word 0
+#
+# s11 = guarda o tempo para a Música
+#
+# --- Contexto dos argumentos passados para as funções PRINT
 #	a0 = endereço imagem (com tudo, pixeis e metadados)
 #	a1 = x
 #	a2 = y
 #	a3 = frame (0 ou 1)
 #
-## ---
+## --- Contexto da função PRINT
 #	t0 = endereço do bitmap display
 #	t1 = endereço da imagem (só pixel)
 #	t2 = contador de linha
@@ -15,6 +18,7 @@
 #	t4 = largura
 # 	t5 = altura
 #
+
 .text
 SETUP:	# Printa o background inicial
 	la a0, mapa_fase1 
@@ -30,15 +34,25 @@ SETUP:	# Printa o background inicial
 	li a2, 32
 	call PRINT_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
+	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
+	ecall
+	mv s11, a0
+	
+	la a0, otaviano
+	li a1, 0
+	li a2, 0
+	li a3, 0
 	
 GAME_LOOP: 
 	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
 	call INPUT
 
+	call TOCAR_MUSICA
+
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
 	xori s0, s0, 1
 
-#	call PRINT
+	#call PRINT
 	
 	# Altera o frame mostrado
 	li t0, 0xFF200604
@@ -129,8 +143,8 @@ PRINT_LINHA:
 	
 PRINT_HARD_BLOCKS:
 	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
-	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
+	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+	sw ra, 0(sp)         # salva ra no topo da área alocada
 
 loop_phb:
 	# Printa o hardblock na posição a1 (x) e a2 (y) inicial
@@ -172,8 +186,9 @@ loop_phb:
 
 	li a2, 32
 	
-	lw ra, 4(sp)         # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 16 bytes da stack
+	ret
 		
 	ret
 	
@@ -183,10 +198,10 @@ PRINT_SOFT_BLOCKS:
 	li t0, 16
 	sub a1, a1, t0
 	sub a2, a2, t0 
+		
+	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+	sw ra, 0(sp)         # salva ra no topo da área alocada
 	
-	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
-
 loop_psb:
 	# Código para printar o softblock ao redor do hardblock
 
@@ -201,7 +216,7 @@ loop_psb:
 
 	or t1, t1, t2
 
-	beq t1, zero, skip
+	beq t1, zero, skip_psb
 	
 	# Código que decide se o softblock será printado ou não
 	# Ele pega um número entr 0 e 8 e se for 0 ele printa
@@ -219,7 +234,7 @@ loop_psb:
 	mv a0, t4
 	mv a1, t5
 	
-	bne t1, zero, skip
+	bne t1, zero, skip_psb
 	
 	# Printa os softblock
 	li a3, 0
@@ -227,7 +242,7 @@ loop_psb:
 	li a3, 1
 	call PRINT
 
-skip:	
+skip_psb:	
 	addi a1, a1, 16
 
 	# Pega a coordenada x do hardblock, subtrai 16 e soma 48.
@@ -262,37 +277,81 @@ skip:
 	la t0, IMAGE_ORIGINAL
 	lw a2, 8(t0)
 	
-	lw ra, 4(sp)         # restaura return address
-    addi sp, sp, 4     # desloca o stack pointer	
-	ret 
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 16 bytes da stack
+	ret
 
-SETUP_MUSICA:
-    la t0, NUM_NOTAS   # endereço da quantidade de notas
-    lw t0, 0(s0)       # lê o número de notas
-    la t1, NOTAS       # endereço das notas
-    li t2, 0           # contador de notas
-    li t3, 30          # instrumento: guitar
-    li t4, 127         # volume máximo
+# ============================
+# Função principal de controle da música
+# ============================
+TOCAR_MUSICA:
+    li a7, 30
+    ecall                  # a0 ← tempo atual
+	
+	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+	sw ra, 0(sp)         # salva ra no topo da área alocada
 
-MUSICA_LOOP:
-    beq t2, t0, fim    # fim da música?
-    lw a0, 0(t1)       # carrega nota MIDI
-    lw a1, 4(t1)      # carrega duração
-    li a7, 31          # syscall 31: toca nota
+    la t2, CONTADOR_MUSICA
+    lw t2, 0(t2)           # t2 ← índice da nota atual
+
+    la a5, NOTAS
+    li t4, 8
+    mul t3, t2, t4
+    add a5, a5, t3         # a5 ← endereço da nota atual
+
+    bltu a0, s11, skip_tm  # se a0 < s11, ainda não é hora → sai
+    call tocar_nota        # senão, toca a nota
+
+skip_tm:
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 16 bytes da stack
+    ret
+
+# ============================
+# Função que toca uma nota
+# ============================
+tocar_nota:
+    addi sp, sp, -4        # reserva espaço na pilha
+    sw ra, 0(sp)           # salva ra da função atual
+
+    la t0, NUM_NOTAS
+    lw t0, 0(t0)
+
+    la t2, CONTADOR_MUSICA
+    lw t2, 0(t2)
+
+    bne t2, t0, tocar
+    li t2, 0
+    la t5, CONTADOR_MUSICA
+    sw t2, 0(t5)
+
+    la a5, NOTAS
+    li t4, 8
+    mul t3, t2, t4
+    add a5, a5, t3
+
+tocar:
+    lw a0, 0(a5)
+    lw a1, 4(a5)
+    li a2, 30
+    li a3, 127
+    li a7, 31
     ecall
 
-    mv a0, a1          # pausa = duração da nota
-    li a7, 32          # syscall 32: espera
+    la t0, CONTADOR_MUSICA
+    lw t2, 0(t0)
+    addi t2, t2, 1
+    sw t2, 0(t0)
+
+    li a7, 30
     ecall
+    mv s11, a0
+    lw t3, 4(a5)
+    add s11, s11, t3
 
-    addi t1, t1, 8     # próxima nota
-    addi t2, t2, 1     # incrementa contador
-    j MUSICA_LOOP
-
-fim:
-    li a7, 10          # syscall 10: finaliza
-    ecall
-
+    lw ra, 0(sp)
+    addi sp, sp, 4
+    ret
 
 .data
 .include "images/mapa_fase1.data"
