@@ -35,7 +35,6 @@ SETUP:	# Printa o background inicial
 	li a2, 16
 	call PRINT_SOFT_BLOCKS
 	
-	
 GAME_LOOP: 
 	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
 	call INPUT
@@ -43,14 +42,30 @@ GAME_LOOP:
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
 	xori s0, s0, 1
 
-#	call PRINT
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	la a0, tijolo_16x16
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
 	
 	# Altera o frame mostrado
 	li t0, 0xFF200604
 	sw s0, 0(t0)
 	
-	j GAME_LOOP
+	#limpa o frame
+	#Carrega o bomberman
+	la t0, OLD_BOMBER_POS
+	la a0, hard_block #Trocar para o chão
+	lh a1, 0(t0)
+	lh a2, 2(t0)
 	
+	mv a3, s0
+	xori a3, a3, 1
+	call PRINT
+	
+	j GAME_LOOP
 	
 # Nesse procedimento, ele checa se o teclado foi apertado e se o 'o' ou 'f' foi a tecla apertada
 # Se for uma dessas duas opções, ele muda a imagem mostrada para a otaviano ou frogger respectivamente
@@ -60,15 +75,18 @@ INPUT:
 	andi t0,t0,0x0001		
 	beq t0, zero, FIM
 	lw t2, 4(t1)
-		
-
 	
-	# Para alterar o que ele faz quando houve uma tecla, basta mudar esses parâmetros e procedimentos chamados					
-	li t0, 'o'
-	beq t2, t0, IMG_OTAVIANO
+	li t0, 'd'
+	beq t2, t0, MOVE_DIREITA
 	
-	li t0, 'f'
-	beq t2, t0, IMG_FROGGER
+	li t0, 'a'
+	beq t2, t0, MOVE_ESQUERDA
+	
+	li t0, 'w'
+	beq t2, t0, MOVE_CIMA
+	
+	li t0, 's'
+	beq t2, t0, MOVE_BAIXO
 	
 FIM: 	ret
 
@@ -131,6 +149,64 @@ PRINT_LINHA:
 	mv t3, zero
 	addi t2, t2, 1
 	bgt t5, t2, PRINT_LINHA
+	
+	ret
+
+MOVE_ESQUERDA:
+	li s10, -16
+	j MOVE_HORIZONTAL
+	
+MOVE_DIREITA:
+	li s10, 16
+	j MOVE_HORIZONTAL
+	
+#s10 eh o argumento da direção
+MOVE_HORIZONTAL:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
+    	
+	#carrega e altera a posição antiga do bomber
+	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
+	la s9, OLD_BOMBER_POS
+	lw s8, 0(s11)
+	sw s8, 0(s9)
+	
+	#soma e atualiza a posição
+	lh a1, 0(s11)
+	add a1, a1, s10
+	sh a1, 0(s11)
+	
+	lw ra, 4(sp)       # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
+	
+	ret
+
+MOVE_CIMA:
+	li s10, -16
+	j MOVE_VERTICAL
+	
+MOVE_BAIXO:
+	li s10, 16
+	j MOVE_VERTICAL
+	
+#s10 eh o argumento da direção
+MOVE_VERTICAL:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
+    	
+	#carrega e altera a posição antiga do bomber
+	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
+	la s9, OLD_BOMBER_POS
+	lw s8, 0(s11)
+	sw s8, 0(s9)
+	
+	#soma e atualiza a posição
+	lh a1, 2(s11)
+	add a1, a1, s10
+	sh a1, 2(s11)
+	
+	lw ra, 4(sp)       # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
 	
 	ret
 	
@@ -238,6 +314,8 @@ skip:	addi a1, a1, 16
 
 
 .data
+BOMBER_POS: .half 24, 16
+OLD_BOMBER_POS: .half 24, 16
 .include "images/mapa_fase1.data"
 .include "images/hard_block.data"
 .include "images/soft_block.data"
