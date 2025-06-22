@@ -38,27 +38,29 @@ SETUP:	# Printa o background inicial
 	ecall
 	mv s11, a0
 	
-	la a0, otaviano
-	li a1, 0
-	li a2, 0
-	li a3, 0
-	
 GAME_LOOP: 
-	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
-	call INPUT
-
 	call TOCAR_MUSICA
 
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
 	xori s0, s0, 1
-
-	#call PRINT
 	
+	li a0, 0
+	li a1, 0
+	li a2, 0
+	li a3, 0
+	
+	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
+	call INPUT
+		
+	beq a0, zero, continue_gl	
+	call PRINT
+	
+continue_gl:
 	# Altera o frame mostrado
 	li t0, 0xFF200604
 	sw s0, 0(t0)
 	
-	j GAME_LOOP
+	fim_gl: j GAME_LOOP
 	
 	
 # Nesse procedimento, ele checa se o teclado foi apertado e se o 'o' ou 'f' foi a tecla apertada
