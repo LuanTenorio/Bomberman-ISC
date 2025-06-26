@@ -34,19 +34,15 @@ SETUP:	# Printa o background inicial
 	li a2, 32
 	call PRINT_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
-<<<<<<< HEAD
-=======
 	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
 	ecall
 	mv s11, a0
 	
->>>>>>> b93d2a91a2005d90b88b4809edb09d23a74df1d4
 GAME_LOOP: 
 	call TOCAR_MUSICA
 
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
 	xori s0, s0, 1
-<<<<<<< HEAD
 
 	#Carrega o bomberman
 	la t0, BOMBER_POS
@@ -55,8 +51,6 @@ GAME_LOOP:
 	lh a2, 2(t0)
 	mv a3, s0
 	call PRINT
-=======
->>>>>>> b93d2a91a2005d90b88b4809edb09d23a74df1d4
 	
 	li a0, 0
 	li a1, 0
@@ -74,16 +68,12 @@ continue_gl:
 	li t0, 0xFF200604
 	sw s0, 0(t0)
 	
-<<<<<<< HEAD
 	#limpa o frame
 	#Carrega o bomberman
 	la t0, OLD_BOMBER_POS
 	la a0, chao_do_mapa
 	lh a1, 0(t0)
 	lh a2, 2(t0)
-=======
-	fim_gl: j GAME_LOOP
->>>>>>> b93d2a91a2005d90b88b4809edb09d23a74df1d4
 	
 	mv a3, s0
 	xori a3, a3, 1
