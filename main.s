@@ -1,6 +1,11 @@
 .data
 	IMAGE_ORIGINAL: .word 0, 0, 0 # Guarda o endereço da imagem e posições iniciais x e y respectivamente
+	
 	CONTADOR_MUSICA: .word 0
+	
+	#Posições iniciais do bomberman 
+	BOMBER_POS: .half 24, 16
+	OLD_BOMBER_POS: .half 24, 16
 #
 # s11 = guarda o tempo para a Música
 #
@@ -34,6 +39,16 @@ SETUP:	# Printa o background inicial
 	li a2, 32
 	call PRINT_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	la a0, tijolo_16x16
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+	
 	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
 	ecall
 	mv s11, a0
@@ -41,43 +56,15 @@ SETUP:	# Printa o background inicial
 GAME_LOOP: 
 	call TOCAR_MUSICA
 
+	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
+	call INPUT
+
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
 	xori s0, s0, 1
 
-	#Carrega o bomberman
-	la t0, BOMBER_POS
-	la a0, tijolo_16x16
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	mv a3, s0
-	call PRINT
-	
-	li a0, 0
-	li a1, 0
-	li a2, 0
-	li a3, 0
-	
-	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
-	call INPUT
-		
-	beq a0, zero, continue_gl	
-	call PRINT
-	
-continue_gl:
 	# Altera o frame mostrado
 	li t0, 0xFF200604
 	sw s0, 0(t0)
-	
-	#limpa o frame
-	#Carrega o bomberman
-	la t0, OLD_BOMBER_POS
-	la a0, chao_do_mapa
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	
-	mv a3, s0
-	xori a3, a3, 1
-	call PRINT
 	
 	j GAME_LOOP
 	
@@ -103,20 +90,6 @@ INPUT:
 	beq t2, t0, MOVE_BAIXO
 	
 FIM: 	ret
-
-IMG_OTAVIANO:
-	la a0, otaviano
-	li a1, 0
-	li a2, 0
-	mv a3, s0
-	ret
-	
-IMG_FROGGER:
-	la a0, frogger
-	li a1, 0
-	li a2, 0
-	mv a3, s0
-	ret
 
 PRINT: 
 	# Define o endereço inicial do bitmap display e qual frame vai usar
@@ -180,15 +153,17 @@ MOVE_HORIZONTAL:
     	sw ra, 4(sp)         # salva return address
     	
 	#carrega e altera a posição antiga do bomber
-	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
-	la s9, OLD_BOMBER_POS
-	lw s8, 0(s11)
-	sw s8, 0(s9)
+	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
+	la t1, OLD_BOMBER_POS
+	lw t2, 0(t0)
+	sw t2, 0(t1)
 	
 	#soma e atualiza a posição
-	lh a1, 0(s11)
+	lh a1, 0(t0)
 	add a1, a1, s10
-	sh a1, 0(s11)
+	sh a1, 0(t0)
+	
+	call PRINT_BOMBERMAN
 	
 	lw ra, 4(sp)       # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
@@ -209,20 +184,53 @@ MOVE_VERTICAL:
     	sw ra, 4(sp)         # salva return address
     	
 	#carrega e altera a posição antiga do bomber
-	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
-	la s9, OLD_BOMBER_POS
-	lw s8, 0(s11)
-	sw s8, 0(s9)
+	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
+	la t1, OLD_BOMBER_POS
+	lw t2, 0(t0)
+	sw t2, 0(t1)
 	
 	#soma e atualiza a posição
-	lh a1, 2(s11)
-	add a1, a1, s10
-	sh a1, 2(s11)
+	lh t1, 2(t0)
+	add t1, t1, s10
+	sh t1, 2(t0)
+	
+	call PRINT_BOMBERMAN
 	
 	lw ra, 4(sp)       # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
 	
 	ret
+	
+PRINT_BOMBERMAN:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
+    	
+	
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	la a0, tijolo_16x16
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
+	xori a3, a3, 1
+	call PRINT
+	
+	#limpa o frame
+	#Carrega o bomberman
+	la t0, OLD_BOMBER_POS
+	la a0, chao_do_mapa
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
+	xori a3, a3, 1
+	call PRINT
+	
+	lw ra, 4(sp)       # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
+    	
+    	ret
 	
 PRINT_HARD_BLOCKS:
 	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
@@ -437,8 +445,6 @@ tocar:
     ret
 
 .data
-BOMBER_POS: .half 24, 16
-OLD_BOMBER_POS: .half 24, 16
 .include "images/chao_do_mapa.data"
 .include "images/mapa_fase1.data"
 .include "images/hard_block.data"
