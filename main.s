@@ -170,12 +170,18 @@ MOVE_HORIZONTAL:
 	la s9, OLD_BOMBER_POS
 	lw s8, 0(s11)
 	sw s8, 0(s9)
-	
+
+	call VERIFICA_COLISAO_HORIZONTAL
+
+	li a1, 1 # Se a7 for 1, houve colisão
+	beq a7, a1, FIM_MOVIMENTO_HORIZONTAL
+
 	#soma e atualiza a posição
-	lh a1, 0(s11)
-	add a1, a1, s10
-	sh a1, 0(s11)
-	
+	lh a1, 0(s11) # Carrega a coordenada X atual
+	add a1, a1, s10 # Adiciona o deslocamento
+	sh a1, 0(s11) # Salva a nova coordenada X
+
+FIM_MOVIMENTO_HORIZONTAL:
 	lw ra, 4(sp)       # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
 	
@@ -184,31 +190,144 @@ MOVE_HORIZONTAL:
 MOVE_CIMA:
 	li s10, -16
 	j MOVE_VERTICAL
-	
+
 MOVE_BAIXO:
 	li s10, 16
 	j MOVE_VERTICAL
-	
+
 #s10 eh o argumento da direção
 MOVE_VERTICAL:
 	addi sp, sp, -4     # reserva espaço na pilha
     	sw ra, 4(sp)         # salva return address
-    	
+
 	#carrega e altera a posição antiga do bomber
 	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
 	la s9, OLD_BOMBER_POS
 	lw s8, 0(s11)
 	sw s8, 0(s9)
 	
+	call VERIFICA_COLISAO_VERTICAL # Chama a função de verificação de colisão vertical
+
+	li a1, 1 # Se a7 for 1, houve colisão
+	beq a7, a1, FIM_MOVIMENTO_VERTICAL
+
 	#soma e atualiza a posição
-	lh a1, 2(s11)
-	add a1, a1, s10
-	sh a1, 2(s11)
-	
+	lh a1, 2(s11) # Carrega a coordenada Y atual
+	add a1, a1, s10 # Adiciona o deslocamento
+	sh a1, 2(s11) # Salva a nova coordenada Y
+
+FIM_MOVIMENTO_VERTICAL:
 	lw ra, 4(sp)       # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
-	
+
 	ret
+
+VERIFICA_COLISAO_HORIZONTAL:
+	# Salva registradores usados que nao sao temporarios
+	addi sp, sp, -16
+	sw ra, 0(sp)
+	sw s11, 4(sp)
+	sw s10, 8(sp) 
+	sw s9, 12(sp)
+
+	# Carrega a posição atual do bomberman em pixel
+	la t0, BOMBER_POS
+	lh t1, 0(t0) # t1 = x_atual (pixel)
+	lh t2, 2(t0) # t2 = y_atual (pixel)
+
+	# Calcula a posição X futura
+	add t1, t1, s10 # t1 = x_futuro (pixel)
+
+	# Converte coordenadas de pixel para coordenadas de mapa de colisao
+	srli t1, t1, 4 # divide por 16
+	srli t2, t2, 4 # divide por 16
+
+	# Calcula o endereço da celula no mapa de colisao
+	# Endereço = Endereço base do mapa + (y_mapa * largura_mapa + x_mapa) * tamanho_elemento
+	la t3, mapa_de_colisao # t3 = endereço base do mapa
+
+	li t4, 19 # t4 = largura do mapa
+	mul t5, t2, t4 # t5 = y_mapa * largura_mapa
+	add t5, t5, t1 # t5 = (y_mapa * largura_mapa) + x_mapa
+
+	slli t5, t5, 1 # t5 = t5 * 2 
+	add t3, t3, t5 # t3 = endereço da celula no mapa de colisao
+
+	# Carrega o valor da celula do mapa de colisao
+	lh t6, 0(t3) # t6 = valor da celula
+
+	# Chamar aqui quando colidir com o inimigo
+	bne t6, zero, COLISAO_OCORREU
+
+	# Não houve colisao
+	li a7, 0
+	j FIM_VERIFICA_COLISAO_HORIZONTAL
+
+COLISAO_OCORREU:
+	li a7, 1
+
+FIM_VERIFICA_COLISAO_HORIZONTAL:
+	# Restaura registradores salvos
+	lw ra, 0(sp)
+	lw s11, 4(sp)
+	lw s10, 8(sp)
+	lw s9, 12(sp)
+	addi sp, sp, 16
+
+	ret
+
+VERIFICA_COLISAO_VERTICAL:
+	# Salva registradores usados que não são temporários
+	addi sp, sp, -16
+	sw ra, 0(sp)
+	sw s11, 4(sp)
+	sw s10, 8(sp)
+	sw s9, 12(sp)
+
+	# Carrega a posição atual do bomberman
+	la t0, BOMBER_POS
+	lh t1, 0(t0) # t1 = x_atual
+	lh t2, 2(t0) # t2 = y_atual
+
+	# Calcula a posição Y futura
+	add t2, t2, s10 
+
+	# Converte coordenadas de pixel para coordenadas de mapa de colisao
+	srli t1, t1, 4
+	srli t2, t2, 4
+
+	# Calcula o endereço da celula no mapa de colisao
+	la t3, mapa_de_colisao
+
+	li t4, 19 # t4 = largura do mapa (19 celulas)
+	mul t5, t2, t4 # t5 = y_mapa * largura_mapa
+	add t5, t5, t1 # t5 = (y_mapa * largura_mapa) + x_mapa
+
+	slli t5, t5, 1 # t5 = t5 * 2 
+	add t3, t3, t5 # t3 = endereço da celula no mapa de colisao
+
+	# Carrega o valor da celula do mapa de colisao
+	lh t6, 0(t3) # t6 = valor da celula
+
+	# Verifica se há colisao (valor != 0)
+	bne t6, zero, COLISAO_VERTICAL_OCORREU
+
+	# Não houve colisao
+	li a7, 0
+	j FIM_VERIFICA_COLISAO_VERTICAL
+
+COLISAO_VERTICAL_OCORREU:
+	li a7, 1
+
+FIM_VERIFICA_COLISAO_VERTICAL:
+	# Restaura registradores salvos
+	lw ra, 0(sp)
+	lw s11, 4(sp)
+	lw s10, 8(sp)
+	lw s9, 12(sp)
+	addi sp, sp, 16
+
+	ret	
 	
 PRINT_HARD_BLOCKS:
 	addi sp, sp, -4     # reserva espaço na pilha
@@ -321,6 +440,7 @@ OLD_BOMBER_POS: .half 24, 16
 .include "images/hard_block.data"
 .include "images/soft_block.data"
 .include "images/tijolo_16x16.data"
+.include "images/mapa_de_colisao.data"
 
 .include "images/otaviano.data"
 .include "images/frogger.data"
