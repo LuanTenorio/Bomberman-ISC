@@ -4,9 +4,13 @@
 	CONTADOR_MUSICA: .word 0
 	
 	#Posições iniciais do bomberman 
-	BOMBER_POS: .half 24, 16
-	OLD_BOMBER_POS: .half 24, 16
-#
+	BOMBER_POS: .half 24, 48
+	OLD_BOMBER_POS: .half 24, 48
+
+	BOMBER_VIDA: .byte 3
+	
+	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
+
 # s11 = guarda o tempo para a Música
 #
 # --- Contexto dos argumentos passados para as funções PRINT
@@ -36,7 +40,7 @@ SETUP:	# Printa o background inicial
 	
 	la a0, hard_block
 	li a1, 40	
-	li a2, 32
+	li a2, 64
 	call PRINT_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
 	#Carrega o bomberman
@@ -56,10 +60,15 @@ SETUP:	# Printa o background inicial
 GAME_LOOP: 
 	call TOCAR_MUSICA
 
-	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
+	call VERIFICA_VIDA
+	
+	call PRINT_PONTUACAO
+
+	# O personagem move de acordo com o input
 	call INPUT
 
 	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
+skip_gl:	
 	xori s0, s0, 1
 
 	# Altera o frame mostrado
@@ -317,7 +326,7 @@ loop_psb:
 	mv t4, a0 
 	mv t5, a1  
 
-	li a1, 8
+	li a1, 6
 	li a7, 42
 	ecall
 	mv t1, a0
@@ -370,6 +379,160 @@ skip_psb:
 	
 	lw ra, 0(sp)         # restaura ra
 	addi sp, sp, 4       # libera os 16 bytes da stack
+	ret
+	
+VERIFICA_VIDA:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada	
+		
+	la t0, BOMBER_VIDA
+	lb a4, 0(t0)		# Pega vida do bomberman
+	
+	beq a4, zero, skip_vv	# Se a vida for zero, skipa
+	
+	# Carrega endereço da imagem da vida e sua posição
+	la a0, vida
+	li a1, 24
+	li a2, 0
+	
+	li a5, 0 # count do print
+	
+print_vida:
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+	addi a1, a1, 20 	# Coloca as coordenada do próximo coração
+	addi a5, a5, 1		# Aumenta o count
+	bne a5, a4, print_vida
+			
+skip_vv:
+	# Por enquanto não faz nada caso a vida dele chegue a zero
+
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
+	ret
+
+PRINT_PONTUACAO:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada	
+		
+	la t0, PONTUACAO
+	lw t1, 0(t0)		# Pega pega a pontuação
+	sw t1, 4(t0) 		# Guarda na memória auxiliar para o print
+	
+	li a1, 280	# Coordenadas iniciais dos números (Da direita para a esquerda)
+	li a2, 0
+	
+loop_pp:	
+	la t0, PONTUACAO 	#Carrega pontuação auxiliar
+	lw t1, 4(t0)
+
+	li t2, 10
+	rem a4, t1, t2
+	
+	div t1, t1, t2
+
+	sw t1, 4(t0)
+	
+	call PRINT_CARACTERE
+	
+	addi a1, a1, -16
+	li t0, 200
+	bne a1, t0, loop_pp
+	
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
+	ret
+	
+	
+PRINT_CARACTERE:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada	
+	
+	li a0, 0	
+		
+	li t0, 0
+	beq a4, t0, print_0
+	
+	li t0, 1
+	beq a4, t0, print_1
+	
+	li t0, 2
+	beq a4, t0, print_2
+	
+	li t0, 3
+	beq a4, t0, print_3
+	
+	li t0, 4
+	beq a4, t0, print_4
+	
+	li t0, 5
+	beq a4, t0, print_5
+	
+	li t0, 6
+	beq a4, t0, print_6
+	
+	li t0, 7
+	beq a4, t0, print_7
+	
+	li t0, 8
+	beq a4, t0, print_8
+	
+	li t0, 9
+	beq a4, t0, print_9
+
+print_0:
+	la a0, alg_zero
+	j fim_pc	
+
+print_1:
+	la a0, alg_um
+	j fim_pc
+	
+print_2:
+	la a0, alg_dois
+	j fim_pc
+	
+print_3:
+	la a0, alg_tres
+	j fim_pc
+	
+print_4:
+	la a0, alg_quatro
+	j fim_pc
+	
+print_5:
+	la a0, alg_cinco
+	j fim_pc							
+
+print_6:
+	la a0, alg_seis
+	j fim_pc
+	
+print_7:
+	la a0, alg_sete
+	j fim_pc
+	
+print_8:
+	la a0, alg_oito
+	j fim_pc
+	
+print_9:
+	la a0, alg_nove
+	j fim_pc
+	
+fim_pc:
+	beq a0, zero, fim_pc2
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+fim_pc2:
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
 	ret
 
 # ============================
@@ -450,6 +613,19 @@ tocar:
 .include "images/hard_block.data"
 .include "images/soft_block.data"
 .include "images/tijolo_16x16.data"
+.include "images/vida.data"
+.include "images/algarismos.data"
+
+.include "images/alg_zero.data"
+.include "images/alg_um.data"
+.include "images/alg_dois.data"
+.include "images/alg_tres.data"
+.include "images/alg_quatro.data"
+.include "images/alg_cinco.data"
+.include "images/alg_seis.data"
+.include "images/alg_sete.data"
+.include "images/alg_oito.data"
+.include "images/alg_nove.data"
 
 .include "images/otaviano.data"
 .include "images/frogger.data"
