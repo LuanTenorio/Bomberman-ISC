@@ -1,12 +1,25 @@
 .data
+	IMAGE_ORIGINAL: .word 0, 0, 0 # Guarda o endereço da imagem e posições iniciais x e y respectivamente
+	
+	CONTADOR_MUSICA: .word 0
+	
+	#Posições iniciais do bomberman 
+	BOMBER_POS: .half 24, 48
+	OLD_BOMBER_POS: .half 24, 48
 
-# --- Metadados dos registrados --
+	BOMBER_VIDA: .byte 3
+	
+	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
+
+# s11 = guarda o tempo para a Música
+#
+# --- Contexto dos argumentos passados para as funções PRINT
 #	a0 = endereço imagem (com tudo, pixeis e metadados)
 #	a1 = x
 #	a2 = y
 #	a3 = frame (0 ou 1)
 #
-## ---
+## --- Contexto da função PRINT
 #	t0 = endereço do bitmap display
 #	t1 = endereço da imagem (só pixel)
 #	t2 = contador de linha
@@ -27,43 +40,40 @@ SETUP:	# Printa o background inicial
 	
 	la a0, hard_block
 	li a1, 40	
-	li a2, 32
-	call PRINT_HARD_BLOCKS
+	li a2, 64
+	call PRINT_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
-	la a0, soft_block
-	li a1, 40	
-	li a2, 16
-	call PRINT_SOFT_BLOCKS
-	
-GAME_LOOP: 
-	# Importante chamar o INPUT antes de tudo, pois ele define os parâmetros do que irá ser printado
-	call INPUT
-
-	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
-	xori s0, s0, 1
-
 	#Carrega o bomberman
 	la t0, BOMBER_POS
 	la a0, tijolo_16x16
 	lh a1, 0(t0)
 	lh a2, 2(t0)
-	mv a3, s0
+	li a3, 0
+	call PRINT
+	li a3, 1
 	call PRINT
 	
+	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
+	ecall
+	mv s11, a0
+	
+GAME_LOOP: 
+	call TOCAR_MUSICA
+
+	call VERIFICA_VIDA
+	
+	call PRINT_PONTUACAO
+
+	# O personagem move de acordo com o input
+	call INPUT
+
+	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)
+skip_gl:	
+	xori s0, s0, 1
+
 	# Altera o frame mostrado
 	li t0, 0xFF200604
 	sw s0, 0(t0)
-	
-	#limpa o frame
-	#Carrega o bomberman
-	la t0, OLD_BOMBER_POS
-	la a0, chao_do_mapa
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	
-	mv a3, s0
-	xori a3, a3, 1
-	call PRINT
 	
 	j GAME_LOOP
 	
@@ -89,20 +99,6 @@ INPUT:
 	beq t2, t0, MOVE_BAIXO
 	
 FIM: 	ret
-
-IMG_OTAVIANO:
-	la a0, otaviano
-	li a1, 0
-	li a2, 0
-	mv a3, s0
-	ret
-	
-IMG_FROGGER:
-	la a0, frogger
-	li a1, 0
-	li a2, 0
-	mv a3, s0
-	ret
 
 PRINT: 
 	# Define o endereço inicial do bitmap display e qual frame vai usar
@@ -332,69 +328,120 @@ FIM_VERIFICA_COLISAO_VERTICAL:
 PRINT_HARD_BLOCKS:
 	addi sp, sp, -4     # reserva espaço na pilha
     	sw ra, 4(sp)         # salva return address
+    	
+	
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	la a0, tijolo_16x16
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
+	xori a3, a3, 1
+	call PRINT
+	
+	#limpa o frame
+	#Carrega o bomberman
+	la t0, OLD_BOMBER_POS
+	la a0, chao_do_mapa
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
+	xori a3, a3, 1
+	call PRINT
+	
+	lw ra, 4(sp)       # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
+    	
+    	ret
+	
+#PRINT_HARD_BLOCKS:
+	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
+#	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+#	sw ra, 0(sp)         # salva ra no topo da área alocada
 
 loop_phb:
+	# Printa o hardblock na posição a1 (x) e a2 (y) inicial
 	li a3, 0
-	call PRINT
+	call PRINT 
 	li a3, 1
 	call PRINT
+
+	# Printa o softblock ao redor do hardblock
+	
+	# É necessário guardar esses valores na memória, pois para printar o softblock eles também são necessários
+	la t0, IMAGE_ORIGINAL
+	sw a0, 0(t0)
+	sw a1, 4(t0)
+	sw a2, 8(t0)
+
+	call PRINT_SOFT_BLOCKS
+
+	# Retornar os parâmetros originais
+	la t0, IMAGE_ORIGINAL
+	lw a0, 0(t0)
+	lw a1, 4(t0)
+	lw a2, 8(t0)
 
 	addi a1, a1, 32
 	
 	li t4, 288
 
-	# Fica preso nesse loop até a coluna chegar na largura d
+	# Fica preso nesse loop até a coluna chegar na largura do background - 32
 	blt a1, t4, loop_phb
 	
 	li a1, 40
 	
 	li t5, 224
 	
-	# Fica preso nesse loop até linha chegar na altura da imagem
+	# Fica preso nesse loop até linha chegar na altura do background - 16
 	addi a2, a2, 32
 	bgt t5, a2, loop_phb
 
 	li a2, 32
 	
-	lw ra, 4(sp)         # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 16 bytes da stack
+	ret
 		
 	ret
 	
 PRINT_SOFT_BLOCKS:
-	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
-
+	# Seta os parâmetros inicias necessários para printar o softblock
+	la a0, soft_block
+	li t0, 16
+	sub a1, a1, t0
+	sub a2, a2, t0 
+		
+	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+	sw ra, 0(sp)         # salva ra no topo da área alocada
+	
 loop_psb:
-	# Acha o resto da divisão da largura (largura - 40) e altura (altura  - 32) por 32
-	# Executa um or com esses restos e se ambas altura e largura forem divisiveis por 32, não printa o soft block
-	# Isso é necessário para que ele não seja printado em cima do hardblock
-	li t1, 40
-	sub t1, a1, t1
+	# Código para printar o softblock ao redor do hardblock
 
-	li t0, 32
-	rem t0, t1, t0
+	# Primeiro verifica se o softbloco a ser printado não está na mesma posição do hardblock. Se estiver na mesma posição, não printa
+	la t0, IMAGE_ORIGINAL
+	lw t1, 4(t0)
 
-	li t2, 32
-	sub t2, a2, t2
+	lw t2, 8(t0)
 
-	li t1, 32
-	rem t1, t2, t1
+	xor t1, a1, t1
+	xor t2, a2, t2
+
+	or t1, t1, t2
+
+	beq t1, zero, skip_psb
 	
-	or t0, t1, t0
-	beq t0, zero, skip
+	# Código que decide se o softblock será printado ou não
+	# Ele pega um número entr 0 e 8 e se for 0 ele printa
 	
-	
-	# Pega um número aleatório entre 0 e 4 e printa o softblock apenas se esse número for 0
-	# Isso é necessário para manter a aleatoriedade dos blocos que aparecem
-	# É necessário fazer uma forma mais organica disso. 
-	# Creio que seja necessário considerar a aleatoriedade ao redor de cada hardblock e não em todo o mapa discriminadamente
-	# Cada hardblock tem 4/5 de chance de printar 1 ou 2 softblock aleatoriamente ao seu redor por exemplo
-	
-	mv t4, a0
+	# É necessário guardar os valores em a0 (endereço da imagem a ser printado) e a1 (coordenada x da imagem a ser printada)
+	# pois o ecall usa eles
+	mv t4, a0 
 	mv t5, a1  
 
-	li a1, 4
+	li a1, 6
 	li a7, 42
 	ecall
 	mv t1, a0
@@ -402,48 +449,319 @@ loop_psb:
 	mv a0, t4
 	mv a1, t5
 	
-	bne t1, zero, skip
+	bne t1, zero, skip_psb
 	
+	# Printa os softblock
 	li a3, 0
 	call PRINT
 	li a3, 1
 	call PRINT
 
-skip:	addi a1, a1, 16
-	
-	li t4, 296
+skip_psb:	
+	addi a1, a1, 16
 
-	# Fica preso nesse loop até a coluna chegar na largura d
+	# Pega a coordenada x do hardblock, subtrai 16 e soma 48.
+	# Se a coordenada x do softblock a ser printado for igual a esse número, passa para a próxima linha
+	# Isso é importante para delimitar a área de print do softblock como sendo no quadro 3x3 blocos de centro no hardblock
+	la t0, IMAGE_ORIGINAL
+	lw t0, 4(t0)
+	li t4, 16
+	sub t0, t0, t4
+
+	addi t4, t0, 48
+
 	blt a1, t4, loop_psb
 	
-	li a1, 24
+	# Restaura o x do softblock a ser printado para o x do hardblock - 16
+	la t0, IMAGE_ORIGINAL
+	lw a1, 4(t0)	
+	li t4, 16
+	sub a1, a1, t4
+
+	# Restaurda o x do hardblock, subtrai 16 e soma 48 para encontrar o limite de printa da linha.
+	# Mesma razão citada anteriormente
+	lw t0, 8(t0)
+	li t5, 16
+	sub t4, t0, t5
+
+	addi t5, t4, 48
 	
-	li t5, 224
-	
-	# Fica preso nesse loop até linha chegar na altura da imagem
 	addi a2, a2, 16
 	bgt t5, a2, loop_psb
 
-	li a2, 16
+	la t0, IMAGE_ORIGINAL
+	lw a2, 8(t0)
 	
-	lw ra, 4(sp)         # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 16 bytes da stack
+	ret
+	
+VERIFICA_VIDA:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada	
 		
+	la t0, BOMBER_VIDA
+	lb a4, 0(t0)		# Pega vida do bomberman
+	
+	beq a4, zero, skip_vv	# Se a vida for zero, skipa
+	
+	# Carrega endereço da imagem da vida e sua posição
+	la a0, vida
+	li a1, 24
+	li a2, 0
+	
+	li a5, 0 # count do print
+	
+print_vida:
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+	addi a1, a1, 20 	# Coloca as coordenada do próximo coração
+	addi a5, a5, 1		# Aumenta o count
+	bne a5, a4, print_vida
+			
+skip_vv:
+	# Por enquanto não faz nada caso a vida dele chegue a zero
+
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
 	ret
 
+PRINT_PONTUACAO:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada	
+		
+	la t0, PONTUACAO
+	lw t1, 0(t0)		# Pega pega a pontuação
+	sw t1, 4(t0) 		# Guarda na memória auxiliar para o print
+	
+	li a1, 280	# Coordenadas iniciais dos números (Da direita para a esquerda)
+	li a2, 0
+	
+loop_pp:	
+	la t0, PONTUACAO 	#Carrega pontuação auxiliar
+	lw t1, 4(t0)
+
+	li t2, 10
+	rem a4, t1, t2
+	
+	div t1, t1, t2
+
+	sw t1, 4(t0)
+	
+	call PRINT_CARACTERE
+	
+	addi a1, a1, -16
+	li t0, 200
+	bne a1, t0, loop_pp
+	
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
+	ret
+	
+	
+PRINT_CARACTERE:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada	
+	
+	li a0, 0	
+		
+	li t0, 0
+	beq a4, t0, print_0
+	
+	li t0, 1
+	beq a4, t0, print_1
+	
+	li t0, 2
+	beq a4, t0, print_2
+	
+	li t0, 3
+	beq a4, t0, print_3
+	
+	li t0, 4
+	beq a4, t0, print_4
+	
+	li t0, 5
+	beq a4, t0, print_5
+	
+	li t0, 6
+	beq a4, t0, print_6
+	
+	li t0, 7
+	beq a4, t0, print_7
+	
+	li t0, 8
+	beq a4, t0, print_8
+	
+	li t0, 9
+	beq a4, t0, print_9
+
+print_0:
+	la a0, alg_zero
+	j fim_pc	
+
+print_1:
+	la a0, alg_um
+	j fim_pc
+	
+print_2:
+	la a0, alg_dois
+	j fim_pc
+	
+print_3:
+	la a0, alg_tres
+	j fim_pc
+	
+print_4:
+	la a0, alg_quatro
+	j fim_pc
+	
+print_5:
+	la a0, alg_cinco
+	j fim_pc							
+
+print_6:
+	la a0, alg_seis
+	j fim_pc
+	
+print_7:
+	la a0, alg_sete
+	j fim_pc
+	
+print_8:
+	la a0, alg_oito
+	j fim_pc
+	
+print_9:
+	la a0, alg_nove
+	j fim_pc
+	
+fim_pc:
+	beq a0, zero, fim_pc2
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+fim_pc2:
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
+	ret
+
+# ============================
+# Função principal de controle da música
+# ============================
+TOCAR_MUSICA:
+    li a7, 30
+    ecall                  # a0 ← tempo atual
+	
+	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+	sw ra, 0(sp)         # salva ra no topo da área alocada
+
+    la t2, CONTADOR_MUSICA
+    lw t2, 0(t2)           # t2 ← índice da nota atual
+
+    la a5, NOTAS
+    li t4, 8
+    mul t3, t2, t4
+    add a5, a5, t3         # a5 ← endereço da nota atual
+
+    bltu a0, s11, skip_tm  # se a0 < s11, ainda não é hora → sai
+    call tocar_nota        # senão, toca a nota
+
+skip_tm:
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 16 bytes da stack
+    ret
+
+# ============================
+# Função que toca uma nota
+# ============================
+tocar_nota:
+    addi sp, sp, -4        # reserva espaço na pilha
+    sw ra, 0(sp)           # salva ra da função atual
+
+    la t0, NUM_NOTAS
+    lw t0, 0(t0)
+
+    la t2, CONTADOR_MUSICA
+    lw t2, 0(t2)
+
+    bne t2, t0, tocar
+    li t2, 0
+    la t5, CONTADOR_MUSICA
+    sw t2, 0(t5)
+
+    la a5, NOTAS
+    li t4, 8
+    mul t3, t2, t4
+    add a5, a5, t3
+
+tocar:
+    lw a0, 0(a5)
+    lw a1, 4(a5)
+    li a2, 30
+    li a3, 127
+    li a7, 31
+    ecall
+
+    la t0, CONTADOR_MUSICA
+    lw t2, 0(t0)
+    addi t2, t2, 1
+    sw t2, 0(t0)
+
+    li a7, 30
+    ecall
+    mv s11, a0
+    lw t3, 4(a5)
+    add s11, s11, t3
+
+    lw ra, 0(sp)
+    addi sp, sp, 4
+    ret
 
 .data
-BOMBER_POS: .half 24, 16
-OLD_BOMBER_POS: .half 24, 16
 .include "images/chao_do_mapa.data"
 .include "images/mapa_fase1.data"
 .include "images/hard_block.data"
 .include "images/soft_block.data"
 .include "images/tijolo_16x16.data"
 .include "images/mapa_de_colisao.data"
+.include "images/vida.data"
+.include "images/algarismos.data"
+
+.include "images/alg_zero.data"
+.include "images/alg_um.data"
+.include "images/alg_dois.data"
+.include "images/alg_tres.data"
+.include "images/alg_quatro.data"
+.include "images/alg_cinco.data"
+.include "images/alg_seis.data"
+.include "images/alg_sete.data"
+.include "images/alg_oito.data"
+.include "images/alg_nove.data"
 
 .include "images/otaviano.data"
 .include "images/frogger.data"
+
+# Número de notas (cada par nota+duração = 1 nota lógica)
+NUM_NOTAS: .word 56
+
+# Tema principal + repetição com variações
+NOTAS:
+.word 76,300, 76,300, 84,300, 84,300, 
+      83,300, 83,300, 81,300, 81,300,
+      79,400, 79,200, 81,400, 79,400,
+      76,400, 76,400, 0,600, 76,300,
+      81,300, 81,300, 79,300, 79,300,
+      77,300, 77,300, 76,300, 76,300,
+      74,400, 74,200, 76,400, 74,400,
+      72,400, 72,400, 0,600, 76,300,
+
+      76,300, 76,300, 76,300, 76,300,
+      79,300, 79,300, 81,600, 0,400
 
 
 		
