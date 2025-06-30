@@ -1,4 +1,5 @@
 .data
+	IMAGE_ORIGINAL: .word 0, 0, 0 # Guarda o endereço da imagem e posições iniciais x e y respectivamente
 
 # --- Metadados dos registrados --
 #	a0 = endereço imagem (com tudo, pixeis e metadados)
@@ -27,12 +28,7 @@ SETUP:	# Printa o background inicial
 	la a0, hard_block
 	li a1, 40	
 	li a2, 32
-	call PRINT_HARD_BLOCKS
-	
-	la a0, soft_block
-	li a1, 40	
-	li a2, 16
-	call PRINT_SOFT_BLOCKS
+	call PRINT_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
 	
 GAME_LOOP: 
@@ -59,8 +55,6 @@ INPUT:
 	andi t0,t0,0x0001		
 	beq t0, zero, FIM
 	lw t2, 4(t1)
-		
-
 	
 	# Para alterar o que ele faz quando houve uma tecla, basta mudar esses parâmetros e procedimentos chamados					
 	li t0, 'o'
@@ -134,27 +128,45 @@ PRINT_LINHA:
 	ret
 	
 PRINT_HARD_BLOCKS:
+	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
 	addi sp, sp, -4     # reserva espaço na pilha
     	sw ra, 4(sp)         # salva return address
 
 loop_phb:
+	# Printa o hardblock na posição a1 (x) e a2 (y) inicial
 	li a3, 0
-	call PRINT
+	call PRINT 
 	li a3, 1
 	call PRINT
+
+	# Printa o softblock ao redor do hardblock
+	
+	# É necessário guardar esses valores na memória, pois para printar o softblock eles também são necessários
+	la t0, IMAGE_ORIGINAL
+	sw a0, 0(t0)
+	sw a1, 4(t0)
+	sw a2, 8(t0)
+
+	call PRINT_SOFT_BLOCKS
+
+	# Retornar os parâmetros originais
+	la t0, IMAGE_ORIGINAL
+	lw a0, 0(t0)
+	lw a1, 4(t0)
+	lw a2, 8(t0)
 
 	addi a1, a1, 32
 	
 	li t4, 288
 
-	# Fica preso nesse loop até a coluna chegar na largura d
+	# Fica preso nesse loop até a coluna chegar na largura do background - 32
 	blt a1, t4, loop_phb
 	
 	li a1, 40
 	
 	li t5, 224
 	
-	# Fica preso nesse loop até linha chegar na altura da imagem
+	# Fica preso nesse loop até linha chegar na altura do background - 16
 	addi a2, a2, 32
 	bgt t5, a2, loop_phb
 
@@ -166,39 +178,40 @@ loop_phb:
 	ret
 	
 PRINT_SOFT_BLOCKS:
+	# Seta os parâmetros inicias necessários para printar o softblock
+	la a0, soft_block
+	li t0, 16
+	sub a1, a1, t0
+	sub a2, a2, t0 
+	
 	addi sp, sp, -4     # reserva espaço na pilha
     	sw ra, 4(sp)         # salva return address
 
 loop_psb:
-	# Acha o resto da divisão da largura (largura - 40) e altura (altura  - 32) por 32
-	# Executa um or com esses restos e se ambas altura e largura forem divisiveis por 32, não printa o soft block
-	# Isso é necessário para que ele não seja printado em cima do hardblock
-	li t1, 40
-	sub t1, a1, t1
+	# Código para printar o softblock ao redor do hardblock
 
-	li t0, 32
-	rem t0, t1, t0
+	# Primeiro verifica se o softbloco a ser printado não está na mesma posição do hardblock. Se estiver na mesma posição, não printa
+	la t0, IMAGE_ORIGINAL
+	lw t1, 4(t0)
 
-	li t2, 32
-	sub t2, a2, t2
+	lw t2, 8(t0)
 
-	li t1, 32
-	rem t1, t2, t1
+	xor t1, a1, t1
+	xor t2, a2, t2
+
+	or t1, t1, t2
+
+	beq t1, zero, skip
 	
-	or t0, t1, t0
-	beq t0, zero, skip
+	# Código que decide se o softblock será printado ou não
+	# Ele pega um número entr 0 e 8 e se for 0 ele printa
 	
-	
-	# Pega um número aleatório entre 0 e 4 e printa o softblock apenas se esse número for 0
-	# Isso é necessário para manter a aleatoriedade dos blocos que aparecem
-	# É necessário fazer uma forma mais organica disso. 
-	# Creio que seja necessário considerar a aleatoriedade ao redor de cada hardblock e não em todo o mapa discriminadamente
-	# Cada hardblock tem 4/5 de chance de printar 1 ou 2 softblock aleatoriamente ao seu redor por exemplo
-	
-	mv t4, a0
+	# É necessário guardar os valores em a0 (endereço da imagem a ser printado) e a1 (coordenada x da imagem a ser printada)
+	# pois o ecall usa eles
+	mv t4, a0 
 	mv t5, a1  
 
-	li a1, 4
+	li a1, 8
 	li a7, 42
 	ecall
 	mv t1, a0
@@ -208,79 +221,50 @@ loop_psb:
 	
 	bne t1, zero, skip
 	
+	# Printa os softblock
 	li a3, 0
 	call PRINT
 	li a3, 1
 	call PRINT
 
-skip:	addi a1, a1, 16
-	
-	li t4, 296
+skip:	
+	addi a1, a1, 16
 
-	# Fica preso nesse loop até a coluna chegar na largura d
+	# Pega a coordenada x do hardblock, subtrai 16 e soma 48.
+	# Se a coordenada x do softblock a ser printado for igual a esse número, passa para a próxima linha
+	# Isso é importante para delimitar a área de print do softblock como sendo no quadro 3x3 blocos de centro no hardblock
+	la t0, IMAGE_ORIGINAL
+	lw t0, 4(t0)
+	li t4, 16
+	sub t0, t0, t4
+
+	addi t4, t0, 48
+
 	blt a1, t4, loop_psb
 	
-	li a1, 24
+	# Restaura o x do softblock a ser printado para o x do hardblock - 16
+	la t0, IMAGE_ORIGINAL
+	lw a1, 4(t0)	
+	li t4, 16
+	sub a1, a1, t4
+
+	# Restaurda o x do hardblock, subtrai 16 e soma 48 para encontrar o limite de printa da linha.
+	# Mesma razão citada anteriormente
+	lw t0, 8(t0)
+	li t5, 16
+	sub t4, t0, t5
+
+	addi t5, t4, 48
 	
-	li t5, 224
-	
-	# Fica preso nesse loop até linha chegar na altura da imagem
 	addi a2, a2, 16
 	bgt t5, a2, loop_psb
 
-	li a2, 16
+	la t0, IMAGE_ORIGINAL
+	lw a2, 8(t0)
 	
 	lw ra, 4(sp)         # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
-		
-	ret 
-	
-.data
-# Número de notas (cada par nota+duração = 1 nota lógica)
-NUM: .word 56
-
-# Tema principal + repetição com variações
-NOTAS:
-.word 76,300, 76,300, 84,300, 84,300, 
-      83,300, 83,300, 81,300, 81,300,
-      79,400, 79,200, 81,400, 79,400,
-      76,400, 76,400, 0,600, 76,300,
-      81,300, 81,300, 79,300, 79,300,
-      77,300, 77,300, 76,300, 76,300,
-      74,400, 74,200, 76,400, 74,400,
-      72,400, 72,400, 0,600, 76,300,
-
-      76,300, 76,300, 76,300, 76,300,
-      79,300, 79,300, 81,600, 0,400
-
-.text
-.globl main
-main:
-    la s0, NUM         # endereço da quantidade de notas
-    lw s1, 0(s0)       # lê o número de notas
-    la s0, NOTAS       # endereço das notas
-    li t0, 0           # contador de notas
-    li a2, 30          # instrumento: guitar
-    li a3, 127         # volume máximo
-
-LOOP:
-    beq t0, s1, fim    # fim da música?
-    lw a0, 0(s0)       # carrega nota MIDI
-    lw a1, 4(s0)       # carrega duração
-    li a7, 31          # syscall 31: toca nota
-    ecall
-
-    mv a0, a1          # pausa = duração da nota
-    li a7, 32          # syscall 32: espera
-    ecall
-
-    addi s0, s0, 8     # próxima nota
-    addi t0, t0, 1     # incrementa contador
-    j LOOP
-
-fim:
-    li a7, 10          # syscall 10: finaliza
-    ecall
+	ret
 
 
 .data
