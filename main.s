@@ -171,7 +171,7 @@ MOVE_HORIZONTAL:
 
 	li a1, 1 # Se a7 for 1, houve colisão
 	beq a7, a1, FIM_MOVIMENTO_HORIZONTAL
-	
+
 	#soma e atualiza a posição
 	lh a1, 0(t0)
 	add a1, a1, s10
@@ -331,6 +331,41 @@ PRINT_BOMBERMAN:
     	addi sp, sp, 4     # desloca o stack pointer
     	
     	ret
+
+# a4 é o argumento que define o valor a ser escrito na matriz de colisao
+ATUALIZA_MAPA_COLISAO:
+	# salva na pilha os registradores que serão utilizados para não afetar outras funções.
+	addi sp, sp, -16
+	sw t0, 0(sp)
+	sw t1, 4(sp)
+	sw t2, 8(sp)
+	sw t3, 12(sp)
+
+	# converte coordenadas de pixel para coordenadas da matriz (divisão por 16)
+	srli t0, a1, 4  # x_map / 16
+	srli t1, a2, 4  # y_map / 16
+
+	# calcula o endereco na matriz de colisao (EnderecoBase + (y_map * largura + x_map) * 2)
+	la t2, mapa_de_colisao # endereco base da matriz
+	li t3, 19              # largura da matriz
+	
+	mul t1, t1, t3          # y_map * largura
+	add t0, t0, t1          # (y_map * largura) + x_map
+	
+	slli t0, t0, 1           # distancia em bytes
+	add t2, t2, t0          # endereco final da célula na matriz
+
+	# atualiza a matriz com o valor passado em a4.
+	sh a4, 0(t2)
+
+	# Restaura os registradores da pilha.
+	lw t3, 12(sp)
+	lw t2, 8(sp)
+	lw t1, 4(sp)
+	lw t0, 0(sp)
+	addi sp, sp, 16
+
+	ret
 	
 PRINT_HARD_BLOCKS:
 	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
@@ -343,6 +378,9 @@ loop_phb:
 	call PRINT 
 	li a3, 1
 	call PRINT
+
+	li a4, 1  # argumento de bloco indestrutivel
+	call ATUALIZA_MAPA_COLISAO
 
 	# Printa o softblock ao redor do hardblock
 	
@@ -432,6 +470,9 @@ loop_psb:
 	call PRINT
 	li a3, 1
 	call PRINT
+
+	li a4, 2  # argumento de bloco destrutivel
+	call ATUALIZA_MAPA_COLISAO
 
 skip_psb:	
 	addi a1, a1, 16
