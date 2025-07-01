@@ -171,7 +171,7 @@ MOVE_HORIZONTAL:
 
 	li a1, 1 # Se a7 for 1, houve colisão
 	beq a7, a1, FIM_MOVIMENTO_HORIZONTAL
-
+  
 	#soma e atualiza a posição
 	lh a1, 0(t0)
 	add a1, a1, s10
@@ -248,7 +248,7 @@ MOVE_VERTICAL:
 
 	li a1, 1 # Se a7 for 1, houve colisão
 	beq a7, a1, FIM_MOVIMENTO_VERTICAL
-	
+
 	#soma e atualiza a posição
 	lh t1, 2(t0)
 	add t1, t1, s10
@@ -300,6 +300,7 @@ COLISAO_VERTICAL_OCORREU:
 
 FIM_VERIFICA_COLISAO_VERTICAL:
 	ret	
+
 
 PRINT_BOMBERMAN:
 	addi sp, sp, -4     # reserva espaço na pilha
@@ -473,7 +474,7 @@ loop_psb:
 
 	li a4, 2  # argumento de bloco destrutivel
 	call ATUALIZA_MAPA_COLISAO
-
+  
 skip_psb:	
 	addi a1, a1, 16
 
