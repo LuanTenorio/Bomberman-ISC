@@ -162,20 +162,22 @@ MOVE_HORIZONTAL:
     	sw ra, 4(sp)         # salva return address
     	
 	#carrega e altera a posição antiga do bomber
-	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
-	la s9, OLD_BOMBER_POS
-	lw s8, 0(s11)
-	sw s8, 0(s9)
+	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
+	la t1, OLD_BOMBER_POS
+	lw t2, 0(t0)
+	sw t2, 0(t1)
 
 	call VERIFICA_COLISAO_HORIZONTAL
 
 	li a1, 1 # Se a7 for 1, houve colisão
 	beq a7, a1, FIM_MOVIMENTO_HORIZONTAL
-
+	
 	#soma e atualiza a posição
-	lh a1, 0(s11) # Carrega a coordenada X atual
-	add a1, a1, s10 # Adiciona o deslocamento
-	sh a1, 0(s11) # Salva a nova coordenada X
+	lh a1, 0(t0)
+	add a1, a1, s10
+	sh a1, 0(t0)
+	
+	call PRINT_BOMBERMAN
 
 FIM_MOVIMENTO_HORIZONTAL:
 	lw ra, 4(sp)       # restaura return address
@@ -183,49 +185,7 @@ FIM_MOVIMENTO_HORIZONTAL:
 	
 	ret
 
-MOVE_CIMA:
-	li s10, -16
-	j MOVE_VERTICAL
-
-MOVE_BAIXO:
-	li s10, 16
-	j MOVE_VERTICAL
-
-#s10 eh o argumento da direção
-MOVE_VERTICAL:
-	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
-
-	#carrega e altera a posição antiga do bomber
-	la s11, BOMBER_POS # carreaga a posição atual no mapa de pixeis
-	la s9, OLD_BOMBER_POS
-	lw s8, 0(s11)
-	sw s8, 0(s9)
-	
-	call VERIFICA_COLISAO_VERTICAL # Chama a função de verificação de colisão vertical
-
-	li a1, 1 # Se a7 for 1, houve colisão
-	beq a7, a1, FIM_MOVIMENTO_VERTICAL
-
-	#soma e atualiza a posição
-	lh a1, 2(s11) # Carrega a coordenada Y atual
-	add a1, a1, s10 # Adiciona o deslocamento
-	sh a1, 2(s11) # Salva a nova coordenada Y
-
-FIM_MOVIMENTO_VERTICAL:
-	lw ra, 4(sp)       # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
-
-	ret
-
 VERIFICA_COLISAO_HORIZONTAL:
-	# Salva registradores usados que nao sao temporarios
-	addi sp, sp, -16
-	sw ra, 0(sp)
-	sw s11, 4(sp)
-	sw s10, 8(sp) 
-	sw s9, 12(sp)
-
 	# Carrega a posição atual do bomberman em pixel
 	la t0, BOMBER_POS
 	lh t1, 0(t0) # t1 = x_atual (pixel)
@@ -263,23 +223,46 @@ COLISAO_OCORREU:
 	li a7, 1
 
 FIM_VERIFICA_COLISAO_HORIZONTAL:
-	# Restaura registradores salvos
-	lw ra, 0(sp)
-	lw s11, 4(sp)
-	lw s10, 8(sp)
-	lw s9, 12(sp)
-	addi sp, sp, 16
-
 	ret
 
-VERIFICA_COLISAO_VERTICAL:
-	# Salva registradores usados que não são temporários
-	addi sp, sp, -16
-	sw ra, 0(sp)
-	sw s11, 4(sp)
-	sw s10, 8(sp)
-	sw s9, 12(sp)
+MOVE_CIMA:
+	li s10, -16
+	j MOVE_VERTICAL
+	
+MOVE_BAIXO:
+	li s10, 16
+	j MOVE_VERTICAL
+	
+#s10 eh o argumento da direção
+MOVE_VERTICAL:
+	addi sp, sp, -4     # reserva espaço na pilha
+    	sw ra, 4(sp)         # salva return address
+    	
+	#carrega e altera a posição antiga do bomber
+	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
+	la t1, OLD_BOMBER_POS
+	lw t2, 0(t0)
+	sw t2, 0(t1)
 
+	call VERIFICA_COLISAO_VERTICAL # Chama a função de verificação de colisão vertical
+
+	li a1, 1 # Se a7 for 1, houve colisão
+	beq a7, a1, FIM_MOVIMENTO_VERTICAL
+	
+	#soma e atualiza a posição
+	lh t1, 2(t0)
+	add t1, t1, s10
+	sh t1, 2(t0)
+	
+	call PRINT_BOMBERMAN
+	
+FIM_MOVIMENTO_VERTICAL:
+	lw ra, 4(sp)       # restaura return address
+    	addi sp, sp, 4     # desloca o stack pointer
+
+	ret
+	
+VERIFICA_COLISAO_VERTICAL:
 	# Carrega a posição atual do bomberman
 	la t0, BOMBER_POS
 	lh t1, 0(t0) # t1 = x_atual
@@ -316,16 +299,9 @@ COLISAO_VERTICAL_OCORREU:
 	li a7, 1
 
 FIM_VERIFICA_COLISAO_VERTICAL:
-	# Restaura registradores salvos
-	lw ra, 0(sp)
-	lw s11, 4(sp)
-	lw s10, 8(sp)
-	lw s9, 12(sp)
-	addi sp, sp, 16
-
 	ret	
-	
-PRINT_HARD_BLOCKS:
+
+PRINT_BOMBERMAN:
 	addi sp, sp, -4     # reserva espaço na pilha
     	sw ra, 4(sp)         # salva return address
     	
@@ -356,10 +332,10 @@ PRINT_HARD_BLOCKS:
     	
     	ret
 	
-#PRINT_HARD_BLOCKS:
+PRINT_HARD_BLOCKS:
 	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
-#	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
-#	sw ra, 0(sp)         # salva ra no topo da área alocada
+	addi sp, sp, -4      # reserva 16 bytes (mesmo que só vá usar 4)
+	sw ra, 0(sp)         # salva ra no topo da área alocada
 
 loop_phb:
 	# Printa o hardblock na posição a1 (x) e a2 (y) inicial
@@ -762,7 +738,4 @@ NOTAS:
 
       76,300, 76,300, 76,300, 76,300,
       79,300, 79,300, 81,600, 0,400
-
-
-		
 
