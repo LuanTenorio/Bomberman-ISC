@@ -97,15 +97,15 @@ fim_pc2:
 	ret
 
 .data	
-.include "images/alg_zero.data"
-.include "images/alg_um.data"
-.include "images/alg_dois.data"
-.include "images/alg_tres.data"
-.include "images/alg_quatro.data"
-.include "images/alg_cinco.data"
-.include "images/alg_seis.data"
-.include "images/alg_sete.data"
-.include "images/alg_oito.data"
-.include "images/alg_nove.data"
+.include "../images/algarismos/alg_zero.data"
+.include "../images/algarismos/alg_um.data"
+.include "../images/algarismos/alg_dois.data"
+.include "../images/algarismos/alg_tres.data"
+.include "../images/algarismos/alg_quatro.data"
+.include "../images/algarismos/alg_cinco.data"
+.include "../images/algarismos/alg_seis.data"
+.include "../images/algarismos/alg_sete.data"
+.include "../images/algarismos/alg_oito.data"
+.include "../images/algarismos/alg_nove.data"
 
-.include "images/algarismos.data"
+.include "../images/algarismos/algarismos.data"

@@ -236,4 +236,4 @@ loop_pp:
 	ret
 	
 .data
-.include "images/vida.data"
+.include "../images/mapa/vida.data"

@@ -84,19 +84,19 @@ EXECUTAR_ACAO:
 	ret
 	
 # IMPORT DE FUNÇÕES:
-.include "funcoes_auxiliares.s"
-.include "audio.s"
-.include "funcoes_primarias.s"
-.include "acoes.s"	
+.include "funcoes/funcoes_auxiliares.s"
+.include "funcoes/audio.s"
+.include "funcoes/funcoes_primarias.s"
+.include "funcoes/acoes.s"	
 	
 # IMPORT DE IMAGES:
 .data
-.include "images/chao_do_mapa.data"
-.include "images/mapa_fase1.data"
-.include "images/hard_block.data"
-.include "images/soft_block.data"
-.include "images/tijolo_16x16.data"
-.include "images/mapa_de_colisao.data"
+.include "images/mapa/chao_do_mapa.data"
+.include "images/mapa/mapa_fase1.data"
+.include "images/mapa/hard_block.data"
+.include "images/mapa/soft_block.data"
+.include "images/mapa/tijolo_16x16.data"
+.include "images/mapa/mapa_de_colisao.data"
 
 
 
