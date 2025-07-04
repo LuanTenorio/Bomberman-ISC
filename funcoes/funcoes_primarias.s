@@ -6,6 +6,8 @@
 #	- VERIFICAR_VIDA
 #	- PRINT_PONTUACAO
 
+.data
+.include "../images/mapa/vida.data"
 
 # IMPORTS:
 .include "print_caractere.s" 		# Contêm função de imprimir caractere
@@ -13,6 +15,12 @@
 # ============================
 # Funções para setar os blocos indestrutíveis na matriz de colisão
 # ============================
+# Argumentos:
+#	- a0 = endereço da imagem
+#   - a1 = x
+#	- a2 = y
+# 	- a3 = frame (0 ou 1)
+#  	- a4 = tipo de bloco (1 = hardblock, 2 = softblock)
 .text
 SET_HARD_BLOCKS:
 	# Esses comandos são necessários para que funções que chamem funções funcionem corretamente
@@ -20,11 +28,11 @@ SET_HARD_BLOCKS:
 	sw ra, 0(sp)         # salva ra no topo da área alocada
 
 loop_shb:
-	# Printa o hardblock na posição a1 (x) e a2 (y) inicial
-	li a3, 0
-	call PRINT 
-	li a3, 1
-	call PRINT
+	# # Printa o hardblock na posição a1 (x) e a2 (y) inicial
+	# li a3, 0
+	# call PRINT 
+	# li a3, 1
+	# call PRINT
 
 	li a4, 1  # argumento de bloco indestrutivel
 	call ATUALIZA_MAPA_COLISAO
@@ -114,12 +122,12 @@ loop_ssb:
 	mv a1, t5
 	
 	bne t1, zero, skip_ssb
-	
+
 	# Printa os softblock
-	li a3, 0
-	call PRINT
-	li a3, 1
-	call PRINT
+	# li a3, 0
+	# call PRINT
+	# li a3, 1
+	# call PRINT
 
 	li a4, 2  # argumento de bloco destrutivel
 	call ATUALIZA_MAPA_COLISAO
@@ -163,6 +171,99 @@ skip_ssb:
 	addi sp, sp, 4       # libera os 16 bytes da stack
 	ret
 
+# ============================
+# Função para renderizar o a imagem em a0 do que estiver no mapa de colisão 
+# ============================
+# Percorre apenas o quadrado formado pelas coordenadas:
+# (1, 3) (18, 3) (1, 13) (18, 13)
+#
+# Argumentos:
+#		- a0 = endereço da imagem 	
+#		- a4 = tipo de bloco (1 = hardblock, 2 = softblock)
+#
+RENDERIZAR_MAPA_COLISAO:
+    addi sp, sp, -16
+    sw ra, 0(sp)
+    sw s0, 4(sp)    # salva registradores que serão usados
+    sw s1, 8(sp)
+    sw s2, 12(sp)
+    
+    li s0, 1        # x inicial
+    li s1, 3        # y inicial
+    li s2, 18       # x final (exclusive)
+    li s3, 14       # y final (exclusive)
+    
+loop_y:
+    li s0, 1
+    
+loop_x:
+    # Aqui você pode processar cada posição (t2, t1)
+    # Exemplo: calcular endereço na matriz
+    la t3, mapa_de_colisao
+    li t4, 19               # largura da matriz
+    mul t5, s1, t4          # y * largura
+    add t5, t5, s0          # (y * largura) + x
+	mv t0, t5				
+    slli t5, t5, 1          # * 2 (pois são half words)
+    add t3, t3, t5          # endereço final
+    
+    # Exemplo de operação: ler valor atual
+    lh t6, 0(t3)
+
+	bne t6, a4, skip_print_hb  # se não for hard block, pula
+
+
+	li t4, 16
+	mul t0, t0, t4          # converte para pixels (multiplica por 16)
+	addi t5, s1, 1
+	mul t5, t5, t4          
+	add t0, t0, t5         
+	addi t0, t0, -8
+
+	mv a1, t0
+	li t4, 15
+	mul a2, s1, t4
+
+	li a3, 0
+	call PRINT
+	li a3, 1
+	call PRINT
+
+    # Aqui você pode fazer o que precisar com a posição (t2, t1)
+    # Por exemplo, chamar uma função que processa cada célula
+   
+skip_print_hb:
+    addi s0, s0, 1 # próximo x
+    blt s0, s2, loop_x      # continua se x < 16
+    
+    addi s1, s1, 1          # próximo y
+    blt s1, s3, loop_y      # continua se y < 13
+    
+    lw s2, 12(sp)
+    lw s1, 8(sp)
+    lw s0, 4(sp)
+    lw ra, 0(sp)
+    addi sp, sp, 16
+    ret
+
+# ============================
+# Função responsável por printar qualquer mapa
+# ============================
+# Argumentos:
+#	- a0 = endereço da imagem
+PRINT_MAPA:
+	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
+	sw ra, 0(sp)         # salva ra no topo da área alocada
+
+	li a1, 0
+	li a2, 0
+	li a3, 0
+	call PRINT
+
+
+	lw ra, 0(sp)         # restaura ra
+	addi sp, sp, 4       # libera os 4 bytes da stack
+	ret
 
 # ============================
 # Função responsável por printar a vida e verificar se ela chegou a zero
@@ -234,6 +335,68 @@ loop_pp:
 	lw ra, 0(sp)         # restaura ra
 	addi sp, sp, 4       # libera os 4 bytes da stack
 	ret
+
+# ============================
+# Função responsável por printar o bomberman
+# ============================
+# A função printa o bomberman na posição atual e limpa a posição antiga
+PRINT_BOMBERMAN:
+	addi sp, sp, -4     # reserva espaço na pilha
+    sw ra, 0(sp)         # salva return address
+    	
 	
-.data
-.include "../images/mapa/vida.data"
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	la a0, tijolo_16x16
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
+	xori a3, a3, 1
+	call PRINT
+	
+	#limpa o frame
+	#Carrega o bomberman
+	la t0, OLD_BOMBER_POS
+	la a0, chao_do_mapa
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	call PRINT
+	xori a3, a3, 1
+	call PRINT
+	
+	lw ra, 0(sp)       # restaura return address
+    addi sp, sp, 4     # desloca o stack pointer
+    	
+    ret
+
+# ============================
+# Função responsável por atualizar a matriz de colisão
+# ============================
+# A função recebe as coordenadas em pixels (a1, a2) e o valor a ser escrito na matriz de colisão em a4.
+ATUALIZA_MAPA_COLISAO:
+	addi sp, sp, -4
+	sw ra, 0(sp) 
+
+	# converte coordenadas de pixel para coordenadas da matriz (divisão por 16)
+	srli t0, a1, 4  # x_map / 16
+	srli t1, a2, 4  # y_map / 16
+
+	# calcula o endereco na matriz de colisao (EnderecoBase + (y_map * largura + x_map) * 2)
+	la t2, mapa_de_colisao # endereco base da matriz
+	li t3, 19              # largura da matriz
+	
+	mul t1, t1, t3          # y_map * largura
+	add t0, t0, t1          # (y_map * largura) + x_map
+	
+	slli t0, t0, 1           # distancia em bytes
+	add t2, t2, t0          # endereco final da célula na matriz
+
+	# atualiza a matriz com o valor passado em a4.
+	sh a4, 0(t2)
+
+	lw ra, 0(sp)        
+	addi sp, sp, 4	   
+
+	ret

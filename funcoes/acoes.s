@@ -3,8 +3,6 @@
 # ============================
 #	- Funções de movimento
 #  	- Funções de colisão
-# 	- PRINT_BOMBERMAN
-#	- ATUALIZA_MAPA_COLISAO
 
 .text
 MOVE_ESQUERDA:
@@ -18,7 +16,7 @@ MOVE_DIREITA:
 #s10 eh o argumento da direção
 MOVE_HORIZONTAL:
 	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
+    	sw ra, 0(sp)         # salva return address
     	
 	#carrega e altera a posição antiga do bomber
 	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
@@ -39,7 +37,7 @@ MOVE_HORIZONTAL:
 	call PRINT_BOMBERMAN
 
 FIM_MOVIMENTO_HORIZONTAL:
-	lw ra, 4(sp)       # restaura return address
+	lw ra, 0(sp)       # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
 	
 	ret
@@ -95,7 +93,7 @@ MOVE_BAIXO:
 #s10 eh o argumento da direção
 MOVE_VERTICAL:
 	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
+    	sw ra, 0(sp)         # salva return address
     	
 	#carrega e altera a posição antiga do bomber
 	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
@@ -116,7 +114,7 @@ MOVE_VERTICAL:
 	call PRINT_BOMBERMAN
 	
 FIM_MOVIMENTO_VERTICAL:
-	lw ra, 4(sp)       # restaura return address
+	lw ra, 0(sp)       # restaura return address
     	addi sp, sp, 4     # desloca o stack pointer
 
 	ret
@@ -159,70 +157,3 @@ COLISAO_VERTICAL_OCORREU:
 
 FIM_VERIFICA_COLISAO_VERTICAL:
 	ret	
-
-
-PRINT_BOMBERMAN:
-	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
-    	
-	
-	#Carrega o bomberman
-	la t0, BOMBER_POS
-	la a0, tijolo_16x16
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	mv a3, s0
-	call PRINT
-	xori a3, a3, 1
-	call PRINT
-	
-	#limpa o frame
-	#Carrega o bomberman
-	la t0, OLD_BOMBER_POS
-	la a0, chao_do_mapa
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	mv a3, s0
-	call PRINT
-	xori a3, a3, 1
-	call PRINT
-	
-	lw ra, 4(sp)       # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
-    	
-    	ret
-
-# a4 é o argumento que define o valor a ser escrito na matriz de colisao
-ATUALIZA_MAPA_COLISAO:
-	# salva na pilha os registradores que serão utilizados para não afetar outras funções.
-	addi sp, sp, -16
-	sw t0, 0(sp)
-	sw t1, 4(sp)
-	sw t2, 8(sp)
-	sw t3, 12(sp)
-
-	# converte coordenadas de pixel para coordenadas da matriz (divisão por 16)
-	srli t0, a1, 4  # x_map / 16
-	srli t1, a2, 4  # y_map / 16
-
-	# calcula o endereco na matriz de colisao (EnderecoBase + (y_map * largura + x_map) * 2)
-	la t2, mapa_de_colisao # endereco base da matriz
-	li t3, 19              # largura da matriz
-	
-	mul t1, t1, t3          # y_map * largura
-	add t0, t0, t1          # (y_map * largura) + x_map
-	
-	slli t0, t0, 1           # distancia em bytes
-	add t2, t2, t0          # endereco final da célula na matriz
-
-	# atualiza a matriz com o valor passado em a4.
-	sh a4, 0(t2)
-
-	# Restaura os registradores da pilha.
-	lw t3, 12(sp)
-	lw t2, 8(sp)
-	lw t1, 4(sp)
-	lw t0, 0(sp)
-	addi sp, sp, 16
-
-	ret

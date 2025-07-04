@@ -37,17 +37,25 @@ SETUP:	# Printa o background inicial
 	call PRINT
 	li a3, 1
 	call PRINT
-	
+
 	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
 	ecall
 	mv s11, a0
 	
 GAME_LOOP: 
 	call TOCAR_MUSICA
-
+	
 	call VERIFICA_VIDA
 	
 	call PRINT_PONTUACAO
+
+	la a0, hard_block
+	li a4, 1
+	call RENDERIZAR_MAPA_COLISAO
+
+	la a0, soft_block
+	li a4, 2
+	call RENDERIZAR_MAPA_COLISAO
 
 	call INPUT 	# Retorna a tecla pressinada em a0
 	
