@@ -38,6 +38,8 @@ SETUP:	# Printa o background inicial
 	li a3, 1
 	call PRINT
 
+	li s0, 1
+
 	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
 	ecall
 	mv s11, a0
@@ -45,8 +47,11 @@ SETUP:	# Printa o background inicial
 GAME_LOOP: 
 	call TOCAR_MUSICA
 	
-	call VERIFICA_VIDA
+	la a0, mapa_fase1
+	call PRINT_MAPA
 	
+	call VERIFICAR_VIDA
+
 	call PRINT_PONTUACAO
 
 	la a0, hard_block
@@ -57,17 +62,19 @@ GAME_LOOP:
 	li a4, 2
 	call RENDERIZAR_MAPA_COLISAO
 
+	call PRINT_BOMBERMAN # Printa o bomberman na posição atual
+
 	call INPUT 	# Retorna a tecla pressinada em a0
 	
 	call EXECUTAR_ACAO	# Executa ação a partir da tecla em a0
 
-	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)	
-	xori s0, s0, 1
-
 	# Altera o frame mostrado
 	li t0, 0xFF200604
 	sw s0, 0(t0)
-	
+
+	# Inverte o frame (trabalharemos com o frame escondido enquanto o seu oposto é mostrado)	
+	xori s0, s0, 1
+
 	j GAME_LOOP
 	
 

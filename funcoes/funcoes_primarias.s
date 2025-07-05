@@ -3,8 +3,12 @@
 # ============================
 #	- SET_HARD_BLOCKS
 #	- SET_SOFT_BLOCKS	
+#	- RENDERIZAR_MAPA_COLISAO
+#	- PRINT_MAPA
 #	- VERIFICAR_VIDA
 #	- PRINT_PONTUACAO
+# 	- PRINT_BOMBERMAN
+#	- ATUALIZA_MAPA_COLISAO
 
 .data
 .include "../images/mapa/vida.data"
@@ -184,17 +188,17 @@ skip_ssb:
 RENDERIZAR_MAPA_COLISAO:
     addi sp, sp, -16
     sw ra, 0(sp)
-    sw s0, 4(sp)    # salva registradores que serão usados
+    sw s4, 4(sp)    # salva registradores que serão usados
     sw s1, 8(sp)
     sw s2, 12(sp)
     
-    li s0, 1        # x inicial
+    li s4, 1        # x inicial
     li s1, 3        # y inicial
     li s2, 18       # x final (exclusive)
     li s3, 14       # y final (exclusive)
     
 loop_y:
-    li s0, 1
+    li s4, 1
     
 loop_x:
     # Aqui você pode processar cada posição (t2, t1)
@@ -202,7 +206,7 @@ loop_x:
     la t3, mapa_de_colisao
     li t4, 19               # largura da matriz
     mul t5, s1, t4          # y * largura
-    add t5, t5, s0          # (y * largura) + x
+    add t5, t5, s4          # (y * largura) + x
 	mv t0, t5				
     slli t5, t5, 1          # * 2 (pois são half words)
     add t3, t3, t5          # endereço final
@@ -224,24 +228,22 @@ loop_x:
 	li t4, 15
 	mul a2, s1, t4
 
-	li a3, 0
-	call PRINT
-	li a3, 1
+	mv a3, s0
 	call PRINT
 
     # Aqui você pode fazer o que precisar com a posição (t2, t1)
     # Por exemplo, chamar uma função que processa cada célula
    
 skip_print_hb:
-    addi s0, s0, 1 # próximo x
-    blt s0, s2, loop_x      # continua se x < 16
+    addi s4, s4, 1 # próximo x
+    blt s4, s2, loop_x      # continua se x < 16
     
     addi s1, s1, 1          # próximo y
     blt s1, s3, loop_y      # continua se y < 13
     
     lw s2, 12(sp)
     lw s1, 8(sp)
-    lw s0, 4(sp)
+    lw s4, 4(sp)
     lw ra, 0(sp)
     addi sp, sp, 16
     ret
@@ -257,7 +259,7 @@ PRINT_MAPA:
 
 	li a1, 0
 	li a2, 0
-	li a3, 0
+	mv a3, s0
 	call PRINT
 
 
@@ -268,7 +270,7 @@ PRINT_MAPA:
 # ============================
 # Função responsável por printar a vida e verificar se ela chegou a zero
 # ============================
-VERIFICA_VIDA:
+VERIFICAR_VIDA:
 	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
 	sw ra, 0(sp)         # salva ra no topo da área alocada	
 		
@@ -285,9 +287,7 @@ VERIFICA_VIDA:
 	li a5, 0 # count do print
 	
 print_vida:
-	li a3, 0
-	call PRINT
-	li a3, 1
+	mv a3, s0
 	call PRINT
 
 	addi a1, a1, 20 	# Coloca as coordenada do próximo coração
@@ -352,8 +352,6 @@ PRINT_BOMBERMAN:
 	lh a2, 2(t0)
 	mv a3, s0
 	call PRINT
-	xori a3, a3, 1
-	call PRINT
 	
 	#limpa o frame
 	#Carrega o bomberman
@@ -362,8 +360,6 @@ PRINT_BOMBERMAN:
 	lh a1, 0(t0)
 	lh a2, 2(t0)
 	mv a3, s0
-	call PRINT
-	xori a3, a3, 1
 	call PRINT
 	
 	lw ra, 0(sp)       # restaura return address
