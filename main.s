@@ -5,7 +5,7 @@
 	
 	#Posições iniciais do bomberman 
 	BOMBER_POS: .half 24, 48
-	OLD_BOMBER_POS: .half 24, 48
+	OLD_BOMBER_POS: .half 40, 48
 
 	BOMBER_VIDA: .byte 3
 	PONTUACAO: .word 1022, 0 	# 1º pontuação, 2º espaço auxiliar
@@ -28,6 +28,14 @@ SETUP:	# Printa o background inicial
 	li a2, 64
 	call SET_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
 	
+	# Tirando os soft blocks ao redor do spawn do bomberman
+	la t0, mapa_de_colisao
+	li t1, 0
+	sh t1, 116(t0)
+	sh t1, 118(t0)
+	sh t1, 154(t0)
+
+
 	#Carrega o bomberman
 	la t0, BOMBER_POS
 	la a0, tijolo_16x16
