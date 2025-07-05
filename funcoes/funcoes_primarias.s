@@ -216,30 +216,27 @@ loop_x:
 
 	bne t6, a4, skip_print_hb  # se não for hard block, pula
 
-
 	li t4, 16
 	mul t0, t0, t4          # converte para pixels (multiplica por 16)
-	addi t5, s1, 1
-	mul t5, t5, t4          
-	add t0, t0, t5         
-	addi t0, t0, -8
+	addi t5, s1, 1 			# Linha abaixo
+	mul t5, t5, t4     		# converte para pixels (multiplica por 16)     
+	add t0, t0, t5         	# Adiciona a quantidade de pixels que faltavam para achar a posiçãpo correta
+	addi t0, t0, -8			# Diminui 8 pixel sobressalente
 
+	# Defines o x e y da imagem em a0 a ser printada
 	mv a1, t0
 	li t4, 15
 	mul a2, s1, t4
 
 	mv a3, s0
 	call PRINT
-
-    # Aqui você pode fazer o que precisar com a posição (t2, t1)
-    # Por exemplo, chamar uma função que processa cada célula
    
 skip_print_hb:
-    addi s4, s4, 1 # próximo x
-    blt s4, s2, loop_x      # continua se x < 16
+    addi s4, s4, 1 			# próximo x
+    blt s4, s2, loop_x      # continua se x < 18
     
     addi s1, s1, 1          # próximo y
-    blt s1, s3, loop_y      # continua se y < 13
+    blt s1, s3, loop_y      # continua se y < 14
     
     lw s2, 12(sp)
     lw s1, 8(sp)

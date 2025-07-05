@@ -7,13 +7,15 @@
 	BOMBER_POS: .half 24, 48
 	OLD_BOMBER_POS: .half 40, 48
 
+	BOMBA: .word 0, 3000, 0, 1, 1, 1000   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
 	BOMBER_VIDA: .byte 3
-	PONTUACAO: .word 1022, 0 	# 1º pontuação, 2º espaço auxiliar
+	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
 
 # s11 = guarda o tempo para a Música
 # s0 = inverte o frame a ser mostrado
 
 .text
+
 SETUP:	# Printa o background inicial
 	la a0, mapa_fase1 
 	li a1, 0
@@ -26,7 +28,7 @@ SETUP:	# Printa o background inicial
 	la a0, hard_block
 	li a1, 40	
 	li a2, 64
-	call SET_HARD_BLOCKS # Quando cada hardblock é printado, o softblock é pintado junto
+	call SET_HARD_BLOCKS # Quando cada hardblock é setado, o softblock é setado junto
 	
 	# Tirando os soft blocks ao redor do spawn do bomberman
 	la t0, mapa_de_colisao
@@ -34,7 +36,6 @@ SETUP:	# Printa o background inicial
 	sh t1, 116(t0)
 	sh t1, 118(t0)
 	sh t1, 154(t0)
-
 
 	#Carrega o bomberman
 	la t0, BOMBER_POS
@@ -46,11 +47,17 @@ SETUP:	# Printa o background inicial
 	li a3, 1
 	call PRINT
 
+	# Seta o frame de trabalho inicial
 	li s0, 1
 
 	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
 	ecall
 	mv s11, a0
+
+	# Seta o time que controla a bomba
+	# A bomba é setada com 3 segundos de intervalo
+	la t0, BOMBA
+	sw a0, 8(t0) 
 	
 GAME_LOOP: 
 	call TOCAR_MUSICA
@@ -60,6 +67,8 @@ GAME_LOOP:
 	
 	call VERIFICAR_VIDA
 
+	call VERIFICAR_BOMBA
+
 	call PRINT_PONTUACAO
 
 	la a0, hard_block
@@ -68,6 +77,10 @@ GAME_LOOP:
 
 	la a0, soft_block
 	li a4, 2
+	call RENDERIZAR_MAPA_COLISAO
+
+	la a0, bomba
+	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
 	call PRINT_BOMBERMAN # Printa o bomberman na posição atual
@@ -88,7 +101,7 @@ GAME_LOOP:
 
 EXECUTAR_ACAO:
 	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 4(sp)         # salva return address
+    sw ra, 4(sp)         # salva return address
     	
 	li t0, 'd'
 	beq a0, t0, MOVE_DIREITA
@@ -101,9 +114,12 @@ EXECUTAR_ACAO:
 	
 	li t0, 's'
 	beq a0, t0, MOVE_BAIXO
+
+	li t0, ' '
+	beq a0, t0, SET_BOMBA
 	
 	lw ra, 4(sp)       # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
+    addi sp, sp, 4     # desloca o stack pointer
 	ret
 	
 # IMPORT DE FUNÇÕES:
@@ -120,6 +136,7 @@ EXECUTAR_ACAO:
 .include "images/mapa/soft_block.data"
 .include "images/mapa/tijolo_16x16.data"
 .include "images/mapa/mapa_de_colisao.data"
+.include "images/mapa/bomba.data"
 
 
 
