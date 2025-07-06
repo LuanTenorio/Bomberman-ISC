@@ -219,20 +219,25 @@ VERIFICAR_BOMBA:
 
 	la t0, BOMBA
 
-	lw t1, 8(t0) # t1 = Tempo da bomba
-
 	li a7, 30
 	ecall
 
+	lw t1, 8(t0) # t1 = Tempo da bomba
+
 	lw t2, 20(t0) # t2 = tempo de explosão (ms)
 	sub t1, t1, t2 # t1 = Tempo restante da bomba (ms)
-	bgt t1, a0, skip_eb # Se o tempo atual for maior que o tempo restante da bomba, explode a bomba
+	bltu a0, t1, skip_eb # Se o tempo atual for maior que o tempo restante da bomba, explode a bomba
 
 	call EXPLODIR_BOMBA
 
 skip_eb:
+	la t0, BOMBA
+
+	li a7, 30
+	ecall
+
 	lw t1, 8(t0) # t1 = Intervalo da bomba (ms)
-	bgt t1, a0, skip_ab # Se o tempo atual for maior que o tempo da bomba, explode a bomba
+	bgtu t1, a0, skip_ab # Se o tempo atual for maior que o tempo da bomba, explode a bomba
 
 	call APAGAR_BOMBA
 
@@ -245,6 +250,24 @@ skip_ab:
 APAGAR_BOMBA:
 	addi sp, sp, -4     # reserva espaço na pilha
 	sw ra, 0(sp)         # salva return address
+
+	# Limpa a área ao redor da bomba
+
+	li a3, 0 # Sprite vazio
+
+	li a7, -2 # Direção da explosão (esquerda)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	li a7, 2 # Direção da explosão (direita)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	li a7, -38 # Direção da explosão (cima)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	li a7, 38 # Direção da explosão (baixo)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	# Limpa a célula da bomba no mapa de colisão
 
 	la t0, BOMBA
 	lw t1, 12(t0) # t1 = Posição X da bomba
@@ -266,6 +289,34 @@ EXPLODIR_BOMBA:
 	addi sp, sp, -4     # reserva espaço na pilha
 	sw ra, 0(sp)         # salva return address	
 
+	li a3, 5 # Sprite da explosão
+
+	li a7, -2 # Direção da explosão (esquerda)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	li a7, 2 # Direção da explosão (direita)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	li a7, -38 # Direção da explosão (cima)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	li a7, 38 # Direção da explosão (baixo)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	lw ra, 0(sp)       # restaura return address
+	addi sp, sp, 4     # desloca o stack pointer
+	ret
+
+# ============================
+# Função de impressão da explosão
+# ============================
+# Argumentos:
+# 		- a3: sprite a ser printado (5 = explosao, 0 = vazio)
+# 		- a7: direção da explosão (-2 = esquerda, 2 = direita, -38 = cima, 38 = baixo)
+PRINT_EXPLOSAO:
+	addi sp, sp, -4     # reserva espaço na pilha
+	sw ra, 0(sp)         # salva return address
+	
 	la t0, BOMBA
 	lw t1, 12(t0) # t1 = Posição X da bomba
 	lw t2, 16(t0) # t2 = Posição Y da bomba
@@ -274,28 +325,27 @@ EXPLODIR_BOMBA:
 	mv a6, t2
 	call TRANSFORMA_COORDENADAS # Transforma as coordenadas de pixel para coordenadas do mapa de colisão
 	mv t3, a5 # t3 = endereço da célula da bomba no mapa de colisão
+	add t3, t3, a7
 
-	addi t1, t3, -16	 # t1 = endereço da célula esquerda da bomba
-	addi t2, t3, 16	 # t2 = endereço da célula direita da bomba
-	addi t4, t3, -320 # t4 = endereço da célula acima da bomba
-	addi t5, t3, 320  # t5 = endereço da célula abaixo da bomba
+	mv a7, t3 # Passa o endereço da célula da bomba para a5
 
-	li t6, 5 # Valor da explosão no mapa de colisão
+	mv t6, a3 
 
-	bne t1, zero, skip_eb1  	# Celula a esquerda diferente de zero, printa explosão
-	sh t6, 0(t1)		# Carrega o valor da célula da bomba
+	# Caso precise adicionar outros elementos que podem ser explodidos, só acrescentar outro next
 
-skip_eb1:
-	bne t2, zero, skip_eb2  	# Celula a direita diferente de zero, printa explosão
-	sh t6, 0(t2)		# Carrega o valor da célula da bomba
+	lh t1, 0(t3)		# Carrega o valor da célula da bomba esquerda
+	bne t1, zero, next_eb1   # Se a célula não for zero, não altera
+	sh t6, 0(t3)
 
-skip_eb2:
-	bne t4, zero, skip_eb3  	# Celula acima diferente de zero, printa explosão
-	sh t6, 0(t4)		# Carrega o valor da célula da bomba
+next_eb1:
+	li t4, 2
+	bne t1, t4, next_eb2  	# Se a célula não for 2 (softblock), não altera
+	sh t6, 0(t3)		# Carrega o valor da célula da bomba
 
-skip_eb3:
-	bne t5, zero, skip_eb4  	# Celula abaixo diferente de zero, printa explosão
-	sh t6, 0(t5)		# Carrega o valor da célula da bomba
+next_eb2:
+	li t4, 5
+	bne t1, t4, skip_eb4   # Se a célula não for 5 (explosão), não altera
+	sh t6, 0(t3)
 
 skip_eb4:
 	lw ra, 0(sp)       # restaura return address

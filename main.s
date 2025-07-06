@@ -83,6 +83,10 @@ GAME_LOOP:
 	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
+	la a0, bomba
+	li a4, 5
+	call RENDERIZAR_MAPA_COLISAO
+
 	call PRINT_BOMBERMAN # Printa o bomberman na posição atual
 
 	call INPUT 	# Retorna a tecla pressinada em a0
@@ -137,6 +141,3 @@ EXECUTAR_ACAO:
 .include "images/mapa/tijolo_16x16.data"
 .include "images/mapa/mapa_de_colisao.data"
 .include "images/mapa/bomba.data"
-
-
-
