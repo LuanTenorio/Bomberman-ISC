@@ -123,3 +123,31 @@ PRINT_QUEBRA:
 	la a0, quebraLinha
 	ecall
 	ret
+
+
+TRANSFORMA_COORDENADAS:
+	addi sp, sp, -4     # reserva espaço na pilha
+	sw ra, 0(sp)
+
+	mv t1, a5
+	mv t2, a6
+
+	# Converte coordenadas de pixel para coordenadas de mapa de colisao
+	srli t1, t1, 4
+	srli t2, t2, 4
+
+	# Calcula o endereço da celula no mapa de colisao
+	la t3, mapa_de_colisao
+
+	li t4, 19 # t4 = largura do mapa (19 celulas)
+	mul t5, t2, t4 # t5 = y_mapa * largura_mapa
+	add t5, t5, t1 # t5 = (y_mapa * largura_mapa) + x_mapa
+
+	slli t5, t5, 1 # t5 = t5 * 2 
+	add t3, t3, t5 # t3 = endereço da celula no mapa de colisao
+
+	mv a5, t3
+
+	lw ra, 0(sp)
+	addi sp, sp, 4     # desloca o stack pointer
+	ret
