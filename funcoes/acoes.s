@@ -4,6 +4,10 @@
 #	- Funções de movimento
 #  	- Funções de colisão
 # 	- SET_BOMBA
+#	- VERIFICAR_BOMBA
+# 	- APAGAR_BOMBA
+#	- EXPLODIR_BOMBA
+#	- PRINT_EXPLOSAO
 
 .text
 MOVE_ESQUERDA:
@@ -17,8 +21,7 @@ MOVE_DIREITA:
 #s10 eh o argumento da direção
 MOVE_HORIZONTAL:
 	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 0(sp)         # salva return address
-    	
+    sw ra, 0(sp)         # salva return address
 
 	call VERIFICA_COLISAO_HORIZONTAL
 
@@ -27,9 +30,6 @@ MOVE_HORIZONTAL:
   
 	#carrega e altera a posição antiga do bomber
 	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
-	la t1, OLD_BOMBER_POS
-	lw t2, 0(t0)
-	sw t2, 0(t1)
 
 	#soma e atualiza a posição
 	lh a1, 0(t0)
@@ -38,11 +38,13 @@ MOVE_HORIZONTAL:
 	
 FIM_MOVIMENTO_HORIZONTAL:
 	lw ra, 0(sp)       # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
-	
+    addi sp, sp, 4     # desloca o stack pointer
 	ret
 
 VERIFICA_COLISAO_HORIZONTAL:
+	addi sp, sp, -4     # reserva espaço na pilha
+	sw ra, 0(sp)         # salva return address
+
 	# Carrega a posição atual do bomberman em pixel
 	la t0, BOMBER_POS
 	lh t1, 0(t0) # t1 = x_atual (pixel)
@@ -51,34 +53,41 @@ VERIFICA_COLISAO_HORIZONTAL:
 	# Calcula a posição X futura
 	add t1, t1, s10 # t1 = x_futuro (pixel)
 
-	# Converte coordenadas de pixel para coordenadas de mapa de colisao
-	srli t1, t1, 4
-	srli t2, t2, 4
-
-	# Calcula o endereço da celula no mapa de colisao
-	la t3, mapa_de_colisao
-
-	li t4, 19 # t4 = largura do mapa (19 celulas)
-	mul t5, t2, t4 # t5 = y_mapa * largura_mapa
-	add t5, t5, t1 # t5 = (y_mapa * largura_mapa) + x_mapa
-
-	slli t5, t5, 1 # t5 = t5 * 2 
-	add t3, t3, t5 # t3 = endereço da celula no mapa de colisao
+	mv a5, t1
+	mv a6, t2
+	call TRANSFORMA_COORDENADAS
+	mv t3, a5 # t3 = endereço da célula no mapa de colisão
 
 	# Carrega o valor da celula do mapa de colisao
 	lh t6, 0(t3) # t6 = valor da celula
 
-	# Chamar aqui quando colidir com o inimigo
-	bne t6, zero, COLISAO_OCORREU
+	# Verifica se há colisao (valor != 0)
+	beq t6, zero, skip_vch	# Se a célula for zero, não houve colisão
+	li a7, 1 # Houve colisão
+	j end_vch
 
+skip_vch:
+	li t4, 3
+	sh t4, 0(t3) # Move o bomberman para a célula de colisão
+
+	# Carrega a posição atual do bomberman
+	la t0, BOMBER_POS
+	lh t1, 0(t0) # t1 = x_atual
+	lh t2, 2(t0) # t2 = y_atual
+	
+	mv a5, t1
+	mv a6, t2
+	call TRANSFORMA_COORDENADAS
+	mv t3, a5 # t3 = endereço da célula no mapa de colisão
+
+	li t4, 0
+	sh t4, 0(t3) # Limpa a posição antiga do bomberman
 	# Não houve colisao
 	li a7, 0
-	j FIM_VERIFICA_COLISAO_HORIZONTAL
 
-COLISAO_OCORREU:
-	li a7, 1
-
-FIM_VERIFICA_COLISAO_HORIZONTAL:
+end_vch:
+	lw ra, 0(sp)       # restaura return address
+	addi sp, sp, 4     # desloca o stack pointer
 	ret
 
 MOVE_CIMA:
@@ -92,7 +101,7 @@ MOVE_BAIXO:
 #s10 eh o argumento da direção
 MOVE_VERTICAL:
 	addi sp, sp, -4     # reserva espaço na pilha
-    	sw ra, 0(sp)         # salva return address
+    sw ra, 0(sp)         # salva return address
     	
 	call VERIFICA_COLISAO_VERTICAL # Chama a função de verificação de colisão vertical
 
@@ -101,9 +110,6 @@ MOVE_VERTICAL:
 
 	#carrega e altera a posição antiga do bomber
 	la t0, BOMBER_POS # carreaga a posição atual no mapa de pixeis
-	la t1, OLD_BOMBER_POS
-	lw t2, 0(t0)
-	sw t2, 0(t1)
 
 	#soma e atualiza a posição
 	lh t1, 2(t0)
@@ -112,55 +118,62 @@ MOVE_VERTICAL:
 
 FIM_MOVIMENTO_VERTICAL:
 	lw ra, 0(sp)       # restaura return address
-    	addi sp, sp, 4     # desloca o stack pointer
-
+    addi sp, sp, 4     # desloca o stack pointer
 	ret
 	
 VERIFICA_COLISAO_VERTICAL:
-	# Carrega a posição atual do bomberman
+	addi sp, sp, -4     # reserva espaço na pilha
+	sw ra, 0(sp)         # salva return address
+
+	# Carrega a posição atual do bomberman em pixel
 	la t0, BOMBER_POS
-	lh t1, 0(t0) # t1 = x_atual
-	lh t2, 2(t0) # t2 = y_atual
+	lh t1, 0(t0) # t1 = x_atual (pixel)
+	lh t2, 2(t0) # t2 = y_atual (pixel)
 
-	# Calcula a posição Y futura
-	add t2, t2, s10 
-	
-	# Converte coordenadas de pixel para coordenadas de mapa de colisao
-	srli t1, t1, 4
-	srli t2, t2, 4
+	# Calcula a posição X futura
+	add t2, t2, s10 # t2 = y_futuro (pixel)
 
-	# Calcula o endereço da celula no mapa de colisao
-	la t3, mapa_de_colisao
-
-	li t4, 19 # t4 = largura do mapa (19 celulas)
-	mul t5, t2, t4 # t5 = y_mapa * largura_mapa
-	add t5, t5, t1 # t5 = (y_mapa * largura_mapa) + x_mapa
-
-	slli t5, t5, 1 # t5 = t5 * 2 
-	add t3, t3, t5 # t3 = endereço da celula no mapa de colisao
+	mv a5, t1
+	mv a6, t2
+	call TRANSFORMA_COORDENADAS
+	mv t3, a5 # t3 = endereço da célula no mapa de colisão
 
 	# Carrega o valor da celula do mapa de colisao
 	lh t6, 0(t3) # t6 = valor da celula
 
 	# Verifica se há colisao (valor != 0)
-	bne t6, zero, COLISAO_VERTICAL_OCORREU
+	beq t6, zero, skip_vcv	# Se a célula for zero, não houve colisão
+	li a7, 1 # Houve colisão
+	j end_vcv
 
-	# li t4, 0
-	# sw t4, 0(s5) # Zera a célula antiga do mapa de colisão
+skip_vcv:
+	li t4, 3
+	sh t4, 0(t3) # Move o bomberman para a célula de colisão
 
-	# li t4, 3
-	# sw t4, 0(t3) # Atualiza a célula atual do mapa de colisão com o valor do bomberman
+	# Carrega a posição atual do bomberman
+	la t0, BOMBER_POS
+	lh t1, 0(t0) # t1 = x_atual
+	lh t2, 2(t0) # t2 = y_atual
+	
+	mv a5, t1
+	mv a6, t2
+	call TRANSFORMA_COORDENADAS
+	mv t3, a5 # t3 = endereço da célula no mapa de colisão
 
+	li t4, 0
+	sh t4, 0(t3) # Limpa a posição antiga do bomberman
 	# Não houve colisao
 	li a7, 0
-	j FIM_VERIFICA_COLISAO_VERTICAL
 
-COLISAO_VERTICAL_OCORREU:
-	li a7, 1
+end_vcv:
+	lw ra, 0(sp)       # restaura return address
+	addi sp, sp, 4     # desloca o stack pointer
+	ret
 
-FIM_VERIFICA_COLISAO_VERTICAL:
-	ret	
-
+# ============================
+# Função responsável por colocar uma bomba no mapa de colisão
+# ============================
+# Usa a posição atual do bomberman para colocar a bomba
 SET_BOMBA:
 	addi sp, sp, -4     # reserva espaço na pilha
 	sw ra, 0(sp)         # salva return address
@@ -200,6 +213,8 @@ SET_BOMBA:
 	la t0, BOMBA
 	sw t1, 12(t0) # Atualiza a posição X da bomba
 	sw t2, 16(t0) # Atualiza a posição Y da bomba
+	li t1, 1
+	sw t1, 0(t0) # Atualiza o status da bomba (1 =
 
 	# Adiciona 1 ponto pela colocação da bomba
 	la t0, PONTUACAO
@@ -216,6 +231,18 @@ skip_set_bomba:
 VERIFICAR_BOMBA:
 	addi sp, sp, -4     # reserva espaço na pilha
 	sw ra, 0(sp)         # salva return address
+
+	# Verifica se a bomba está colocada
+	# Se a bomba não estiver colocada, não faz nada
+	la t0, BOMBA
+	lw t1, 0(t0) # Status da bomba
+	beq t1, zero, skip_ab 
+
+	la t0, BOMBA
+	la a0, bomba
+	lw a1, 12(t0) # a1 = Posição X da bomba
+	lw a2, 16(t0) # a2 = Posição Y da bomba
+	call PRINT
 
 	la t0, BOMBA
 
@@ -238,7 +265,9 @@ skip_eb:
 
 	lw t1, 8(t0) # t1 = Intervalo da bomba (ms)
 	bgtu t1, a0, skip_ab # Se o tempo atual for maior que o tempo da bomba, explode a bomba
-
+	la t0, BOMBA
+	li t1, 0
+	sw t1, 0(t0) # Zera o status da bomba (0 = bomba não colocada, 1 = bomba colocada)	
 	call APAGAR_BOMBA
 
 skip_ab:
@@ -266,6 +295,9 @@ APAGAR_BOMBA:
 
 	li a7, 38 # Direção da explosão (baixo)
 	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
+
+	mv a0, a3 # Passa o sprite vazio para a função de impressão
+	call PRINT_DEGUB
 
 	# Limpa a célula da bomba no mapa de colisão
 

@@ -5,7 +5,6 @@
 	
 	#Posições iniciais do bomberman 
 	BOMBER_POS: .half 24, 48
-	OLD_BOMBER_POS: .half 40, 48
 
 	BOMBA: .word 0, 3000, 0, 1, 1, 1000   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
 	BOMBER_VIDA: .byte 3
@@ -32,8 +31,9 @@ SETUP:	# Printa o background inicial
 	
 	# Tirando os soft blocks ao redor do spawn do bomberman
 	la t0, mapa_de_colisao
-	li t1, 0
+	li t1, 3
 	sh t1, 116(t0)
+	li t1, 0
 	sh t1, 118(t0)
 	sh t1, 154(t0)
 
@@ -87,10 +87,11 @@ GAME_LOOP:
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
-	call PRINT_BOMBERMAN # Printa o bomberman na posição atual
+	la a0, tijolo_16x16
+	li a4, 3
+	call RENDERIZAR_MAPA_COLISAO
 
 	call INPUT 	# Retorna a tecla pressinada em a0
-	
 	call EXECUTAR_ACAO	# Executa ação a partir da tecla em a0
 
 	# Altera o frame mostrado

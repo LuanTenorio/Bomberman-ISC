@@ -7,7 +7,6 @@
 #	- PRINT_MAPA
 #	- VERIFICAR_VIDA
 #	- PRINT_PONTUACAO
-# 	- PRINT_BOMBERMAN
 #	- ATUALIZA_MAPA_COLISAO
 
 .data
@@ -332,37 +331,6 @@ loop_pp:
 	lw ra, 0(sp)         # restaura ra
 	addi sp, sp, 4       # libera os 4 bytes da stack
 	ret
-
-# ============================
-# Função responsável por printar o bomberman
-# ============================
-# A função printa o bomberman na posição atual e limpa a posição antiga
-PRINT_BOMBERMAN:
-	addi sp, sp, -4     # reserva espaço na pilha
-    sw ra, 0(sp)         # salva return address
-    	
-	
-	#Carrega o bomberman
-	la t0, BOMBER_POS
-	la a0, tijolo_16x16
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	mv a3, s0
-	call PRINT
-	
-	#limpa o frame
-	#Carrega o bomberman
-	la t0, OLD_BOMBER_POS
-	la a0, chao_do_mapa
-	lh a1, 0(t0)
-	lh a2, 2(t0)
-	mv a3, s0
-	call PRINT
-	
-	lw ra, 0(sp)       # restaura return address
-    addi sp, sp, 4     # desloca o stack pointer
-    	
-    ret
 
 # ============================
 # Função responsável por atualizar a matriz de colisão
