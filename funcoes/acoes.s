@@ -323,6 +323,9 @@ EXPLODIR_BOMBA:
 
 	li a3, 5 # Sprite da explosão
 
+	li a7, 0 # Direção da explosão (0 = bomba)
+	call PRINT_EXPLOSAO # Chama a função de impressão da explosão	
+
 	li a7, -2 # Direção da explosão (esquerda)
 	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
 
@@ -361,25 +364,87 @@ PRINT_EXPLOSAO:
 
 	mv a7, t3 # Passa o endereço da célula da bomba para a5
 
+	# SWITCH DE ELEMENTOS QUE SÂO AFETADOS PELA EXPLOSÃO:
+
 	mv t6, a3 
 
-	# Caso precise adicionar outros elementos que podem ser explodidos, só acrescentar outro next
-
+	# Espaço vazio (0) pode ser explodido
 	lh t1, 0(t3)		# Carrega o valor da célula da bomba esquerda
 	bne t1, zero, next_eb1   # Se a célula não for zero, não altera
 	sh t6, 0(t3)
 
 next_eb1:
+	# Softblock (2) pode ser explodido
 	li t4, 2
 	bne t1, t4, next_eb2  	# Se a célula não for 2 (softblock), não altera
 	sh t6, 0(t3)		# Carrega o valor da célula da bomba
 
 next_eb2:
+	# sprite de explosão (5) pode ser explodido
 	li t4, 5
-	bne t1, t4, skip_eb4   # Se a célula não for 5 (explosão), não altera
+	bne t1, t4, next_eb3   # Se a célula não for 5 (explosão), não altera
 	sh t6, 0(t3)
 
+next_eb3:
+	# Bomberman (3) perde vida quando atingido pela explosão
+	li t4, 3
+	bne t1, t4, skip_eb4   # Se a célula não for 3 (bomberman), não altera
+	call TIRAR_VIDA
+
 skip_eb4:
-	lw ra, 0(sp)       # restaura return address
+	lw ra, 0(sp)       # restaura return address	
 	addi sp, sp, 4     # desloca o stack pointer
 	ret 
+
+# ============================
+# Função responsável por tirar vida do bomberman
+# ============================
+TIRAR_VIDA:
+	addi sp, sp, -4     # reserva espaço na pilha
+	sw ra, 0(sp)         # salva return address
+
+	la t0, BOMBER_VIDA
+
+	lw t1, 12(t0) 	# Status do dano do bomberman
+	bne t1, zero, skip_tv # Se o bomberman já levou dano, não tira vida novamente
+
+	# Tira vida do bomberman
+	lw t1, 0(t0) # Carrega a vida do bomberman
+	addi t1, t1, -1 # Diminui a vida do bomberman
+	sw t1, 0(t0) # Atualiza a vida do bomberman
+
+	# Atualiaza o status de dano do bomberman
+	# 0 = não levou dano, 1 = levou dano
+	li t1, 1
+	sw t1, 12(t0)
+
+	# Atualiza o tempo auxiliar do intervalo de dano
+	li a7, 30
+	ecall
+
+	lw t2, 4(t0) # t2 = intervalo de dano (ms)
+	add t1, a0, t2 # Adiciona o tempo atual ao tempo auxiliar
+	sw t1, 8(t0) # Atualiza o tempo auxiliar do intervalo de dano
+
+	j skip_tv2
+
+skip_tv:
+	# Verifica se o intervalo de imunidade passou, caso sim, atualiza o status de dano para 0
+	# Se o status de dano for 0, o bomberman pode levar dano novamente
+	la t0, BOMBER_VIDA
+
+	li a7, 30
+	ecall
+	lw t1, 8(t0) # t1 = tempo auxiliar do intervalo de dano
+	bltu a0, t1, skip_tv2 # Se o tempo atual for menor que o tempo auxiliar, não atualiza o status de dano
+	
+	li t1, 0
+	sw t1, 12(t0) # Atualiza o status do dano (0 = não levou dano, 1 = levou dano)
+
+	mv a0, t1
+	call PRINT_DEGUB
+
+skip_tv2:
+	lw ra, 0(sp)       # restaura return address
+	addi sp, sp, 4     # desloca o stack pointer
+	ret

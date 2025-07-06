@@ -271,7 +271,7 @@ VERIFICAR_VIDA:
 	sw ra, 0(sp)         # salva ra no topo da área alocada	
 		
 	la t0, BOMBER_VIDA
-	lb a4, 0(t0)		# Pega vida do bomberman
+	lw a4, 0(t0)		# Pega vida do bomberman
 	
 	beq a4, zero, skip_vv	# Se a vida for zero, skipa
 	

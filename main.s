@@ -6,8 +6,8 @@
 	#Posições iniciais do bomberman 
 	BOMBER_POS: .half 24, 48
 
-	BOMBA: .word 0, 3000, 0, 1, 1, 1000   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
-	BOMBER_VIDA: .byte 3
+	BOMBA: .word 0, 3000, 0, 1, 1, 500   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
+	BOMBER_VIDA: .word 3, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
 	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
 
 # s11 = guarda o tempo para a Música
@@ -54,10 +54,13 @@ SETUP:	# Printa o background inicial
 	ecall
 	mv s11, a0
 
-	# Seta o time que controla a bomba
-	# A bomba é setada com 3 segundos de intervalo
+	# Seta o timer que controla a bomba
 	la t0, BOMBA
 	sw a0, 8(t0) 
+
+	# Seta o timer que controla o intervalo de dano tomado
+	la t0, BOMBER_VIDA
+	sw a0, 8(t0)
 	
 GAME_LOOP: 
 	call TOCAR_MUSICA
@@ -67,26 +70,35 @@ GAME_LOOP:
 	
 	call VERIFICAR_VIDA
 
+	la t0, BOMBER_VIDA
+	lw t1, 0(t0) # Carrega a vida do bomberman
+	beqz t1, GAME_OVER # Se a vida do bomberman for 0, game over
+
 	call VERIFICAR_BOMBA
 
 	call PRINT_PONTUACAO
 
+	# Renderiza os hard blocks	
 	la a0, hard_block
 	li a4, 1
 	call RENDERIZAR_MAPA_COLISAO
 
+	# Renderiza os soft blocks
 	la a0, soft_block
 	li a4, 2
 	call RENDERIZAR_MAPA_COLISAO
 
+	# Renderiza as bombas
 	la a0, bomba
 	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
+	# Renderiza as explosões
 	la a0, bomba
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
+	# Renderiza o bomberman
 	la a0, tijolo_16x16
 	li a4, 3
 	call RENDERIZAR_MAPA_COLISAO
@@ -102,6 +114,16 @@ GAME_LOOP:
 	xori s0, s0, 1
 
 	j GAME_LOOP
+
+GAME_OVER:
+	# Game Over
+	la a0, mapa_fase1
+	call PRINT_MAPA
+	
+	li a7, 10
+	ecall # FIM 
+
+	j SETUP
 	
 
 EXECUTAR_ACAO:
