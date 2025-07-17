@@ -151,3 +151,26 @@ TRANSFORMA_COORDENADAS:
 	lw ra, 0(sp)
 	addi sp, sp, 4     # desloca o stack pointer
 	ret
+
+
+# Recebe o a0 e converte ele na imagem correspondente a partir do IMAGENS_ID_...
+SELECIONA_IMAGEM_PELO_MAPA:
+    mv t4, a0 # Salva o ID da imagem em t4
+
+	# Pega o mapa atual e subtrai 1 pra usar como índice
+    la   t0, MAPA_ATUAL
+    lw   t1, 0(t0)
+    addi t1, t1, -1
+    slli t1, t1, 2
+
+	# Pega o endereço base da tabela de mapas
+    la   t2, MAPAS
+    add  t2, t2, t1
+    lw   t5, 0(t2)
+
+    # Com a tabela da fase correta em t5, busca a imagem pelo ID
+    slli t0, t4, 2
+    add  t1, t5, t0
+    lw   a0, 0(t1)
+
+    ret

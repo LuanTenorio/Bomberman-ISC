@@ -15,7 +15,7 @@ MOVE_ESQUERDA:
 	
     la   t0, BOMBERMAN_1
     lw   t1, 12(t0) # Carrega o 4 ponteiro da tabela
-    la   t2, CURRENT_BOMBER_POSITION_SPRITE 
+    la   t2, DIRECAO_ATUAL_SPRITE_BOMBERMAN 
     sw   t1, 0(t2) # Salva o endereço do sprite
 
 	j MOVE_HORIZONTAL
@@ -26,7 +26,7 @@ MOVE_DIREITA:
 # Atualiza o sprite
     la   t0, BOMBERMAN_1
     lw   t1, 4(t0) # Carrega o 2 ponteiro da tabela
-    la   t2, CURRENT_BOMBER_POSITION_SPRITE
+    la   t2, DIRECAO_ATUAL_SPRITE_BOMBERMAN
     sw   t1, 0(t2) # Salva o endereço do sprite
 	
 	j MOVE_HORIZONTAL
@@ -109,7 +109,7 @@ MOVE_CIMA:
 	# Atualiza o sprite
     la   t0, BOMBERMAN_1
     lw   t1, 0(t0) # Carrega o 1 ponteiro da tabela
-    la   t2, CURRENT_BOMBER_POSITION_SPRITE
+    la   t2, DIRECAO_ATUAL_SPRITE_BOMBERMAN
     sw   t1, 0(t2) # Salva o endereço do sprite
 
 	j MOVE_VERTICAL
@@ -120,7 +120,7 @@ MOVE_BAIXO:
 	# Atualiza o sprite
     la   t0, BOMBERMAN_1
     lw   t1, 8(t0) # Carrega o 3 ponteiro da tabela
-    la   t2, CURRENT_BOMBER_POSITION_SPRITE
+    la   t2, DIRECAO_ATUAL_SPRITE_BOMBERMAN
     sw   t1, 0(t2) # Salva o endereço do sprite
 
 	j MOVE_VERTICAL
