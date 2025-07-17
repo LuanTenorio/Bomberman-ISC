@@ -12,10 +12,23 @@
 .text
 MOVE_ESQUERDA:
 	li s10, -16
+	
+    la   t0, BOMBERMAN_1
+    lw   t1, 12(t0) # Carrega o 4 ponteiro da tabela
+    la   t2, CURRENT_BOMBER_POSITION_SPRITE 
+    sw   t1, 0(t2) # Salva o endereço do sprite
+
 	j MOVE_HORIZONTAL
 	
 MOVE_DIREITA:
 	li s10, 16
+
+# Atualiza o sprite
+    la   t0, BOMBERMAN_1
+    lw   t1, 4(t0) # Carrega o 2 ponteiro da tabela
+    la   t2, CURRENT_BOMBER_POSITION_SPRITE
+    sw   t1, 0(t2) # Salva o endereço do sprite
+	
 	j MOVE_HORIZONTAL
 	
 #s10 eh o argumento da direção
@@ -92,10 +105,24 @@ end_vch:
 
 MOVE_CIMA:
 	li s10, -16
+
+	# Atualiza o sprite
+    la   t0, BOMBERMAN_1
+    lw   t1, 0(t0) # Carrega o 1 ponteiro da tabela
+    la   t2, CURRENT_BOMBER_POSITION_SPRITE
+    sw   t1, 0(t2) # Salva o endereço do sprite
+
 	j MOVE_VERTICAL
 	
 MOVE_BAIXO:
 	li s10, 16
+
+	# Atualiza o sprite
+    la   t0, BOMBERMAN_1
+    lw   t1, 8(t0) # Carrega o 3 ponteiro da tabela
+    la   t2, CURRENT_BOMBER_POSITION_SPRITE
+    sw   t1, 0(t2) # Salva o endereço do sprite
+
 	j MOVE_VERTICAL
 	
 #s10 eh o argumento da direção
@@ -239,7 +266,7 @@ VERIFICAR_BOMBA:
 	beq t1, zero, skip_ab 
 
 	la t0, BOMBA
-	la a0, bomba
+	la a0, bomba_1
 	lw a1, 12(t0) # a1 = Posição X da bomba
 	lw a2, 16(t0) # a2 = Posição Y da bomba
 	call PRINT

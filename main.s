@@ -2,6 +2,12 @@
 	IMAGE_ORIGINAL: .word 0, 0, 0, 0, 0 # Guarda o endereço da imagem e posições iniciais x e y respectivamente
 	
 	CONTADOR_MUSICA: .word 0
+	CURRENT_BOMBER_POSITION_SPRITE: .word bomber_baixo_1
+
+	BOMBERMAN_1: .word bomber_cima_1,
+		bomber_direita_1,
+		bomber_baixo_1,
+		bomber_esquerda_1
 	
 	#Posições iniciais do bomberman 
 	BOMBER_POS: .half 24, 48
@@ -16,7 +22,7 @@
 .text
 
 SETUP:	# Printa o background inicial
-	la a0, mapa_fase1 
+	la a0, mapa_1 
 	li a1, 0
 	li a2, 0
 	li a3, 0
@@ -24,7 +30,7 @@ SETUP:	# Printa o background inicial
 	li a3, 1
 	call PRINT
 	
-	la a0, hard_block
+	la a0, hard_block_1
 	li a1, 40	
 	li a2, 64
 	call SET_HARD_BLOCKS # Quando cada hardblock é setado, o softblock é setado junto
@@ -39,7 +45,7 @@ SETUP:	# Printa o background inicial
 
 	#Carrega o bomberman
 	la t0, BOMBER_POS
-	la a0, tijolo_16x16
+	la a0, bomber_cima_1
 	lh a1, 0(t0)
 	lh a2, 2(t0)
 	li a3, 0
@@ -65,7 +71,7 @@ SETUP:	# Printa o background inicial
 GAME_LOOP: 
 	call TOCAR_MUSICA
 	
-	la a0, mapa_fase1
+	la a0, mapa_1
 	call PRINT_MAPA
 	
 	call VERIFICAR_VIDA
@@ -79,27 +85,28 @@ GAME_LOOP:
 	call PRINT_PONTUACAO
 
 	# Renderiza os hard blocks	
-	la a0, hard_block
+	la a0, hard_block_1
 	li a4, 1
 	call RENDERIZAR_MAPA_COLISAO
 
 	# Renderiza os soft blocks
-	la a0, soft_block
+	la a0, soft_block_1
 	li a4, 2
 	call RENDERIZAR_MAPA_COLISAO
 
 	# Renderiza as bombas
-	la a0, bomba
+	la a0, bomba_1
 	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
 	# Renderiza as explosões
-	la a0, bomba
+	la a0, fogo_1
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
 	# Renderiza o bomberman
-	la a0, tijolo_16x16
+	la t0, CURRENT_BOMBER_POSITION_SPRITE
+	lw a0, 0(t0)
 	li a4, 3
 	call RENDERIZAR_MAPA_COLISAO
 
@@ -117,7 +124,7 @@ GAME_LOOP:
 
 GAME_OVER:
 	# Game Over
-	la a0, mapa_fase1
+	la a0, mapa_1
 	call PRINT_MAPA
 	
 	li a7, 10
@@ -157,10 +164,13 @@ EXECUTAR_ACAO:
 	
 # IMPORT DE IMAGES:
 .data
-.include "images/mapa/chao_do_mapa.data"
-.include "images/mapa/mapa_fase1.data"
-.include "images/mapa/hard_block.data"
-.include "images/mapa/soft_block.data"
-.include "images/mapa/tijolo_16x16.data"
+.include "images/mapa/fase_1/mapa_1.data"
+.include "images/mapa/fase_1/hard_block_1.data"
+.include "images/mapa/fase_1/soft_block_1.data"
 .include "images/mapa/mapa_de_colisao.data"
-.include "images/mapa/bomba.data"
+.include "images/mapa/fase_1/bomba_1.data"
+.include "images/mapa/fase_1/fogo_1.data"
+.include "images/personagens/bomber_cima_1.data"
+.include "images/personagens/bomber_baixo_1.data"
+.include "images/personagens/bomber_esquerda_1.data"
+.include "images/personagens/bomber_direita_1.data"

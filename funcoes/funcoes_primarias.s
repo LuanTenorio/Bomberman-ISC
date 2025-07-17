@@ -84,7 +84,7 @@ loop_shb:
 # ============================
 SET_SOFT_BLOCKS:
 	# Seta os parâmetros inicias necessários para printar o softblock
-	la a0, soft_block
+	la a0, soft_block_1
 	li t0, 16
 	sub a1, a1, t0
 	sub a2, a2, t0 
@@ -283,6 +283,8 @@ VERIFICAR_VIDA:
 	li a5, 0 # count do print
 	
 print_vida:
+	li a2, 8
+	
 	mv a3, s0
 	call PRINT
 
@@ -308,8 +310,8 @@ PRINT_PONTUACAO:
 	lw t1, 0(t0)		# Pega pega a pontuação
 	sw t1, 4(t0) 		# Guarda na memória auxiliar para o print
 	
-	li a1, 280	# Coordenadas iniciais dos números (Da direita para a esquerda)
-	li a2, 0
+	li a1, 268	# Coordenadas iniciais dos números (Da direita para a esquerda) // Erro ao mudar a posição
+	li a2, 8
 	
 loop_pp:	
 	la t0, PONTUACAO 	#Carrega pontuação auxiliar
@@ -325,7 +327,7 @@ loop_pp:
 	call PRINT_CARACTERE
 	
 	addi a1, a1, -16
-	li t0, 200
+	li t0, 188
 	bne a1, t0, loop_pp
 	
 	lw ra, 0(sp)         # restaura ra
