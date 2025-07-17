@@ -228,7 +228,8 @@ loop_x:
 	mul a2, s1, t4
 
 	mv a3, s0
-	call PRINT
+	li a5, 50
+	call PRINT_TRANSPARENTE
    
 skip_print_hb:
     addi s4, s4, 1 			# próximo x
@@ -257,7 +258,6 @@ PRINT_MAPA:
 	li a2, 0
 	mv a3, s0
 	call PRINT
-
 
 	lw ra, 0(sp)         # restaura ra
 	addi sp, sp, 4       # libera os 4 bytes da stack
@@ -361,3 +361,26 @@ ATUALIZA_MAPA_COLISAO:
 	addi sp, sp, 4	   
 
 	ret
+
+
+# ============================
+# Função responsável por printar o bomberman
+# ============================
+# A função printa o bomberman na posição atual e limpa a posição antiga
+PRINT_BOMBERMAN:
+	addi sp, sp, -4     # reserva espaço na pilha
+    sw ra, 0(sp)         # salva return address
+    	
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	la a0, tijolo_16x16
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	li a4, 0
+	call PRINT_TRANSPARENTE
+
+	lw ra, 0(sp)       # restaura return address
+    addi sp, sp, 4     # desloca o stack pointer
+    	
+    ret

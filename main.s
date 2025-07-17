@@ -1,13 +1,13 @@
 .data
 	IMAGE_ORIGINAL: .word 0, 0, 0, 0, 0 # Guarda o endereço da imagem e posições iniciais x e y respectivamente
 	
-	CONTADOR_MUSICA: .word 0
+	CONTADOR_MUSICA: .word 0, 0 	# 1º Contador da música, 2º controlador do timer 
 	
 	#Posições iniciais do bomberman 
 	BOMBER_POS: .half 24, 48
 
 	BOMBA: .word 0, 3000, 0, 1, 1, 500   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
-	BOMBER_VIDA: .word 3, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
+	BOMBER_VIDA: .word 1, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
 	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
 
 # s11 = guarda o tempo para a Música
@@ -17,12 +17,7 @@
 
 SETUP:	# Printa o background inicial
 	la a0, mapa_fase1 
-	li a1, 0
-	li a2, 0
-	li a3, 0
-	call PRINT
-	li a3, 1
-	call PRINT
+	call PRINT_MAPA
 	
 	la a0, hard_block
 	li a1, 40	
@@ -31,7 +26,7 @@ SETUP:	# Printa o background inicial
 	
 	# Tirando os soft blocks ao redor do spawn do bomberman
 	la t0, mapa_de_colisao
-	li t1, 3
+	li t1, 0
 	sh t1, 116(t0)
 	li t1, 0
 	sh t1, 118(t0)
@@ -52,7 +47,10 @@ SETUP:	# Printa o background inicial
 
 	li a7, 30 	# Salva os 32 low bits do tempo atual em s11. IMPORTANTE PARA A MÚSICA!
 	ecall
-	mv s11, a0
+	mv t0, a0
+
+	la t1, CONTADOR_MUSICA
+	sw t0, 4(t1)
 
 	# Seta o timer que controla a bomba
 	la t0, BOMBA
@@ -63,6 +61,8 @@ SETUP:	# Printa o background inicial
 	sw a0, 8(t0)
 	
 GAME_LOOP: 
+	la a4, notas_fase1
+	la a5, num_notas_fase1
 	call TOCAR_MUSICA
 	
 	la a0, mapa_fase1
@@ -77,6 +77,10 @@ GAME_LOOP:
 	call VERIFICAR_BOMBA
 
 	call PRINT_PONTUACAO
+
+	la a0, chao_do_mapa
+	li a4, 0
+	call RENDERIZAR_MAPA_COLISAO
 
 	# Renderiza os hard blocks	
 	la a0, hard_block
@@ -98,10 +102,7 @@ GAME_LOOP:
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
-	# Renderiza o bomberman
-	la a0, tijolo_16x16
-	li a4, 3
-	call RENDERIZAR_MAPA_COLISAO
+	call PRINT_BOMBERMAN
 
 	call INPUT 	# Retorna a tecla pressinada em a0
 	call EXECUTAR_ACAO	# Executa ação a partir da tecla em a0
@@ -116,15 +117,45 @@ GAME_LOOP:
 	j GAME_LOOP
 
 GAME_OVER:
-	# Game Over
+
+	# Zera o controlar de música para a música de gameover
+	la t0, CONTADOR_MUSICA
+	li t1, 0	
+	sw t1, 0(t0)
+
+	li a7, 30
+	ecall
+
+	mv t1, a0
+	sw t1, 4(t0)
+
+	# Game Over - TROCAR PARA TELA DE GAME OVER
 	la a0, mapa_fase1
-	call PRINT_MAPA
-	
+	li a1, 0
+	li a2, 0
+	li a3, 1
+	call PRINT
+	li a3, 0
+	call PRINT
+
+loop_go:
+	la a4, notas_game_over
+	la a5, num_notas_game_over
+	call TOCAR_MUSICA
+
+	li t1,0xFF200000		
+	lw t0,0(t1)			
+	andi t0,t0,0x0001		
+	beq t0, zero, loop_go
+	lw a0, 4(t1)
+
+	li t0, '\n'
+	bne a0, t0, loop_go
+
 	li a7, 10
 	ecall # FIM 
 
 	j SETUP
-	
 
 EXECUTAR_ACAO:
 	addi sp, sp, -4     # reserva espaço na pilha
@@ -164,3 +195,5 @@ EXECUTAR_ACAO:
 .include "images/mapa/tijolo_16x16.data"
 .include "images/mapa/mapa_de_colisao.data"
 .include "images/mapa/bomba.data"
+.include "audio/musica_fase1.data"
+.include "audio/musica_game_over.data"
