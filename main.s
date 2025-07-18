@@ -5,7 +5,7 @@
 
 	DIRECAO_ATUAL_SPRITE_BOMBERMAN: .word bomber_baixo
 
-	BOMBERMAN_1: .word bomber_cima,
+	BOMBERMAN_1: .word bomber_frente,
 		bomber_direita,
 		bomber_baixo,
 		bomber_esquerda
@@ -129,16 +129,17 @@ GAME_LOOP:
 	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
+	# Renderiza o bomberman
+	la t0, DIRECAO_ATUAL_SPRITE_BOMBERMAN
+	lw a0, 0(t0)
+	call PRINT_BOMBERMAN
+	
 	# Renderiza as explosões
 	la a0, IMAGENS_ID_FOGO
 	call SELECIONA_IMAGEM_PELO_MAPA
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
-	# Renderiza o bomberman
-	la t0, DIRECAO_ATUAL_SPRITE_BOMBERMAN
-	lw a0, 0(t0)
-	call PRINT_BOMBERMAN
 
 	call INPUT 	# Retorna a tecla pressinada em a0
 	call EXECUTAR_ACAO	# Executa ação a partir da tecla em a0
@@ -241,7 +242,7 @@ EXECUTAR_ACAO:
 .include "images/mapa/fase_2/fogo_2.data"
 
 # Bomberman
-.include "images/personagens/bomber_cima.data"
+.include "images/personagens/bomber_frente.data"
 .include "images/personagens/bomber_baixo.data"
 .include "images/personagens/bomber_esquerda.data"
 .include "images/personagens/bomber_direita.data"
