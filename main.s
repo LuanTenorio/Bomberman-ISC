@@ -34,7 +34,7 @@
 	BOMBER_POS: .half 24, 48
 
 	BOMBA: .word 0, 3000, 0, 1, 1, 500   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
-	BOMBER_VIDA: .word 1, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
+	BOMBER_VIDA: .word 3, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
 	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
 
 # s11 = guarda o tempo para a Música

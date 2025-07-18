@@ -269,7 +269,7 @@ VERIFICAR_BOMBA:
 	lw a1, 12(t0) # a1 = Posição X da bomba
 	lw a2, 16(t0) # a2 = Posição Y da bomba
 	mv a3, s0 		# Frame
-	li a5, 50 		# Pixel transparente
+	li a5, 56 		# Pixel transparente
 	call PRINT_TRANSPARENTE
 
 	la t0, BOMBA

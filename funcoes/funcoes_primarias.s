@@ -228,7 +228,7 @@ loop_x:
 	mul a2, s1, t4
 
 	mv a3, s0
-	li a5, 50
+	li a5, 56
 	call PRINT_TRANSPARENTE
    
 skip_print_hb:
@@ -284,9 +284,14 @@ VERIFICAR_VIDA:
 	
 print_vida:
 	li a2, 8
+
+	mv s6, a5
 	
 	mv a3, s0
-	call PRINT
+	li a5, 56
+	call PRINT_TRANSPARENTE
+
+	mv a5, s6
 
 	addi a1, a1, 20 	# Coloca as coordenada do próximo coração
 	addi a5, a5, 1		# Aumenta o count
@@ -378,7 +383,7 @@ PRINT_BOMBERMAN:
 	lh a1, 0(t0)
 	lh a2, 2(t0)
 	mv a3, s0
-	li a4, 0
+	li a5, 56
 	call PRINT_TRANSPARENTE
 
 	lw ra, 0(sp)       # restaura return address
