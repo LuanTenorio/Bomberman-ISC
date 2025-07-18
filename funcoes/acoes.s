@@ -67,22 +67,22 @@ VERIFICA_COLISAO_HORIZONTAL:
 	j end_vch
 
 skip_vch:
-	li t4, 3
-	sh t4, 0(t3) # Move o bomberman para a célula de colisão
+	# li t4, 3
+	# sh t4, 0(t3) # Move o bomberman para a célula de colisão
 
-	# Carrega a posição atual do bomberman
-	la t0, BOMBER_POS
-	lh t1, 0(t0) # t1 = x_atual
-	lh t2, 2(t0) # t2 = y_atual
+	# # Carrega a posição atual do bomberman
+	# la t0, BOMBER_POS
+	# lh t1, 0(t0) # t1 = x_atual
+	# lh t2, 2(t0) # t2 = y_atual
 	
-	mv a5, t1
-	mv a6, t2
-	call TRANSFORMA_COORDENADAS
-	mv t3, a5 # t3 = endereço da célula no mapa de colisão
+	# mv a5, t1
+	# mv a6, t2
+	# call TRANSFORMA_COORDENADAS
+	# mv t3, a5 # t3 = endereço da célula no mapa de colisão
 
-	li t4, 0
-	sh t4, 0(t3) # Limpa a posição antiga do bomberman
-	# Não houve colisao
+	# li t4, 0
+	# sh t4, 0(t3) # Limpa a posição antiga do bomberman
+	# # Não houve colisao
 	li a7, 0
 
 end_vch:
@@ -147,21 +147,21 @@ VERIFICA_COLISAO_VERTICAL:
 	j end_vcv
 
 skip_vcv:
-	li t4, 3
-	sh t4, 0(t3) # Move o bomberman para a célula de colisão
+	# li t4, 3
+	# sh t4, 0(t3) # Move o bomberman para a célula de colisão
 
-	# Carrega a posição atual do bomberman
-	la t0, BOMBER_POS
-	lh t1, 0(t0) # t1 = x_atual
-	lh t2, 2(t0) # t2 = y_atual
+	# # Carrega a posição atual do bomberman
+	# la t0, BOMBER_POS
+	# lh t1, 0(t0) # t1 = x_atual
+	# lh t2, 2(t0) # t2 = y_atual
 	
-	mv a5, t1
-	mv a6, t2
-	call TRANSFORMA_COORDENADAS
-	mv t3, a5 # t3 = endereço da célula no mapa de colisão
+	# mv a5, t1
+	# mv a6, t2
+	# call TRANSFORMA_COORDENADAS
+	# mv t3, a5 # t3 = endereço da célula no mapa de colisão
 
-	li t4, 0
-	sh t4, 0(t3) # Limpa a posição antiga do bomberman
+	# li t4, 0
+	# sh t4, 0(t3) # Limpa a posição antiga do bomberman
 	# Não houve colisao
 	li a7, 0
 
@@ -242,7 +242,9 @@ VERIFICAR_BOMBA:
 	la a0, bomba
 	lw a1, 12(t0) # a1 = Posição X da bomba
 	lw a2, 16(t0) # a2 = Posição Y da bomba
-	call PRINT
+	mv a3, s0 		# Frame
+	li a5, 50 		# Pixel transparente
+	call PRINT_TRANSPARENTE
 
 	la t0, BOMBA
 
@@ -254,6 +256,14 @@ VERIFICAR_BOMBA:
 	lw t2, 20(t0) # t2 = tempo de explosão (ms)
 	sub t1, t1, t2 # t1 = Tempo restante da bomba (ms)
 	bltu a0, t1, skip_eb # Se o tempo atual for maior que o tempo restante da bomba, explode a bomba
+
+	# Som da bomba sendo colocada
+    li a7, 31
+    li a0, 10       # Nota grave (C3)
+    li a1, 200       # Duração curta (200ms)
+    li a2, 126		# Instrumento timpani    
+    li a3, 100        # Volume médio
+    ecall
 
 	call EXPLODIR_BOMBA
 
@@ -296,9 +306,6 @@ APAGAR_BOMBA:
 	li a7, 38 # Direção da explosão (baixo)
 	call PRINT_EXPLOSAO # Chama a função de impressão da explosão
 
-	mv a0, a3 # Passa o sprite vazio para a função de impressão
-	call PRINT_DEGUB
-
 	# Limpa a célula da bomba no mapa de colisão
 
 	la t0, BOMBA
@@ -319,7 +326,7 @@ APAGAR_BOMBA:
 
 EXPLODIR_BOMBA:
 	addi sp, sp, -4     # reserva espaço na pilha
-	sw ra, 0(sp)         # salva return address	
+	sw ra, 0(sp)         # salva return address
 
 	li a3, 5 # Sprite da explosão
 
@@ -362,14 +369,14 @@ PRINT_EXPLOSAO:
 	mv t3, a5 # t3 = endereço da célula da bomba no mapa de colisão
 	add t3, t3, a7
 
-	mv a7, t3 # Passa o endereço da célula da bomba para a5
+	mv a7, t3 # Passa o endereço da célula da bomba para a7
 
 	# SWITCH DE ELEMENTOS QUE SÂO AFETADOS PELA EXPLOSÃO:
 
 	mv t6, a3 
 
 	# Espaço vazio (0) pode ser explodido
-	lh t1, 0(t3)		# Carrega o valor da célula da bomba esquerda
+	lh t1, 0(t3)		# Carrega o valor da célula
 	bne t1, zero, next_eb1   # Se a célula não for zero, não altera
 	sh t6, 0(t3)
 
@@ -387,8 +394,18 @@ next_eb2:
 
 next_eb3:
 	# Bomberman (3) perde vida quando atingido pela explosão
-	li t4, 3
-	bne t1, t4, skip_eb4   # Se a célula não for 3 (bomberman), não altera
+
+	la t0, BOMBER_POS
+	lh t1, 0(t0) # t1 = Posição X da bomba
+	lh t2, 2(t0) # t2 = Posição Y da bomba
+
+	mv a5, t1
+	mv a6, t2
+	call TRANSFORMA_COORDENADAS # Transforma as coordenadas de pixel para coordenadas do mapa de colisão
+	mv t3, a5 # t3 = endereço da célula da bomba no mapa de colisão
+
+	# a7 é a posição da bomba
+	bne t3, a7, skip_eb4   # Se a célula não for (bomberman), não altera
 	call TIRAR_VIDA
 
 skip_eb4:
@@ -440,9 +457,6 @@ skip_tv:
 	
 	li t1, 0
 	sw t1, 12(t0) # Atualiza o status do dano (0 = não levou dano, 1 = levou dano)
-
-	mv a0, t1
-	call PRINT_DEGUB
 
 skip_tv2:
 	lw ra, 0(sp)       # restaura return address
