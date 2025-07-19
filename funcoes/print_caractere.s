@@ -87,9 +87,11 @@ print_9:
 fim_pc:
 	beq a0, zero, fim_pc2
 	li a3, 0
-	call PRINT
+	li a5, 50
+	call PRINT_TRANSPARENTE
 	li a3, 1
-	call PRINT
+	li a5, 50
+	call PRINT_TRANSPARENTE
 
 fim_pc2:
 	lw ra, 0(sp)         # restaura ra

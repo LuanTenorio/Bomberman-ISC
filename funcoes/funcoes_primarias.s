@@ -84,7 +84,7 @@ loop_shb:
 # ============================
 SET_SOFT_BLOCKS:
 	# Seta os parâmetros inicias necessários para printar o softblock
-	la a0, soft_block
+	la a0, soft_block_1
 	li t0, 16
 	sub a1, a1, t0
 	sub a2, a2, t0 
@@ -228,7 +228,8 @@ loop_x:
 	mul a2, s1, t4
 
 	mv a3, s0
-	call PRINT
+	li a5, 56
+	call PRINT_TRANSPARENTE
    
 skip_print_hb:
     addi s4, s4, 1 			# próximo x
@@ -258,7 +259,6 @@ PRINT_MAPA:
 	mv a3, s0
 	call PRINT
 
-
 	lw ra, 0(sp)         # restaura ra
 	addi sp, sp, 4       # libera os 4 bytes da stack
 	ret
@@ -269,7 +269,7 @@ PRINT_MAPA:
 VERIFICAR_VIDA:
 	addi sp, sp, -4      # reserva 4 bytes  no stack pointer
 	sw ra, 0(sp)         # salva ra no topo da área alocada	
-		
+
 	la t0, BOMBER_VIDA
 	lw a4, 0(t0)		# Pega vida do bomberman
 	
@@ -283,8 +283,15 @@ VERIFICAR_VIDA:
 	li a5, 0 # count do print
 	
 print_vida:
+	li a2, 8
+
+	mv s6, a5
+	
 	mv a3, s0
-	call PRINT
+	li a5, 56
+	call PRINT_TRANSPARENTE
+
+	mv a5, s6
 
 	addi a1, a1, 20 	# Coloca as coordenada do próximo coração
 	addi a5, a5, 1		# Aumenta o count
@@ -308,8 +315,8 @@ PRINT_PONTUACAO:
 	lw t1, 0(t0)		# Pega pega a pontuação
 	sw t1, 4(t0) 		# Guarda na memória auxiliar para o print
 	
-	li a1, 280	# Coordenadas iniciais dos números (Da direita para a esquerda)
-	li a2, 0
+	li a1, 268	# Coordenadas iniciais dos números (Da direita para a esquerda) // Erro ao mudar a posição
+	li a2, 8
 	
 loop_pp:	
 	la t0, PONTUACAO 	#Carrega pontuação auxiliar
@@ -325,7 +332,7 @@ loop_pp:
 	call PRINT_CARACTERE
 	
 	addi a1, a1, -16
-	li t0, 200
+	li t0, 188
 	bne a1, t0, loop_pp
 	
 	lw ra, 0(sp)         # restaura ra
@@ -361,3 +368,25 @@ ATUALIZA_MAPA_COLISAO:
 	addi sp, sp, 4	   
 
 	ret
+
+
+# ============================
+# Função responsável por printar o bomberman
+# ============================
+# A função printa o bomberman na posição atual e limpa a posição antiga
+PRINT_BOMBERMAN:
+	addi sp, sp, -4     # reserva espaço na pilha
+    sw ra, 0(sp)         # salva return address
+    	
+	#Carrega o bomberman
+	la t0, BOMBER_POS
+	lh a1, 0(t0)
+	lh a2, 2(t0)
+	mv a3, s0
+	li a5, 56
+	call PRINT_TRANSPARENTE
+
+	lw ra, 0(sp)       # restaura return address
+    addi sp, sp, 4     # desloca o stack pointer
+    	
+    ret
