@@ -17,18 +17,27 @@
         .word hard_block_1,
         .word soft_block_1,
         .word fogo_1,
-        .word bomba_1
+        .word bomba_1,
+		.word bomber_baixo
 
     IMAGENS_MAPA_2:
         .word mapa_2,
         .word hard_block_2,
         .word soft_block_2,
         .word fogo_2,
-        .word bomba_2
+        .word bomba_2,
+		.word bomber_baixo
 
     MAPAS:
         .word IMAGENS_MAPA_1
         .word IMAGENS_MAPA_2
+
+	NUM_INIMIGOS: .byte 1
+	# INIMIGOS:
+	
+	inimigo_pos_1: .word 0, 0, 1, 1, 2 # 1º posição x, 2º posição y, 3º Tipo, 4º status (0 = morto, 1 = ativo), 5º direção (1=cima, 2=baixo, 3=esquerda, 4=direita)
+
+	inimigo_pos_2: .word 0, 0, 2, 1, 2 # 1º posição x, 2º posição y, 3º Tipo, 4º status (0 = morto, 1 = ativo), 5º direção (1=cima, 2=baixo, 3=esquerda, 4=direita)
 
 	#Posições iniciais do bomberman 
 	BOMBER_POS: .half 24, 48
@@ -48,6 +57,7 @@
 .eqv IMAGENS_ID_SOFT_BLOCK, 2
 .eqv IMAGENS_ID_FOGO, 3 # verificar e trocar uma uma fogo com pedaço transparente
 .eqv IMAGENS_ID_BOMBA, 4 # verificar e trocar uma uma bomba com pedaço transparente
+.eqv IMAGENS_ID_INIMIGO, 5
 
 SETUP:
 	call SORTEAR_FASE
@@ -60,6 +70,12 @@ SETUP:
 	li a2, 64
 	call SET_HARD_BLOCKS # Quando cada hardblock é setado, o softblock é setado junto
 	
+	la a0, inimigo_pos_1
+	call SET_INIMIGOS
+
+	la a0, inimigo_pos_2
+	call SET_INIMIGOS
+
 	# Tirando os soft blocks ao redor do spawn do bomberman
 	la t0, mapa_de_colisao
 	li t1, 0
@@ -100,16 +116,17 @@ GAME_LOOP:
 	call PRINT_MAPA
 	
 	call VERIFICAR_VIDA
+	call PRINT_PONTUACAO
 
 	la t0, BOMBER_VIDA
 	lw t1, 0(t0) # Carrega a vida do bomberman
 	beqz t1, GAME_OVER # Se a vida do bomberman for 0, game over
 
-	li a0, IMAGENS_ID_BOMBA
-	call SELECIONA_IMAGEM_PELO_MAPA
-	call VERIFICAR_BOMBA
+	la a0, inimigo_pos_1
+	call MOVIMENTAR_INIMIGO
 
-	call PRINT_PONTUACAO
+	la a0, inimigo_pos_2
+	call MOVIMENTAR_INIMIGO
 
 	# Renderiza os hard blocks	
 	li a0, IMAGENS_ID_HARD_BLOCK
@@ -129,6 +146,10 @@ GAME_LOOP:
 	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
+	li a0, IMAGENS_ID_BOMBA
+	call SELECIONA_IMAGEM_PELO_MAPA
+	call VERIFICAR_BOMBA
+	
 	# Renderiza o bomberman
 	la t0, DIRECAO_ATUAL_SPRITE_BOMBERMAN
 	lw a0, 0(t0)
@@ -140,6 +161,10 @@ GAME_LOOP:
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
+	la a0, IMAGENS_ID_INIMIGO
+	call SELECIONA_IMAGEM_PELO_MAPA
+	li a4, 6
+	call RENDERIZAR_MAPA_COLISAO
 
 	call INPUT 	# Retorna a tecla pressinada em a0
 	call EXECUTAR_ACAO	# Executa ação a partir da tecla em a0
@@ -224,6 +249,8 @@ EXECUTAR_ACAO:
 .include "funcoes/acoes.s"	
 	
 # IMPORT DE IMAGES:
+.include "funcoes/inimigo.s"
+
 .data
 
 #Fase 1
@@ -246,6 +273,8 @@ EXECUTAR_ACAO:
 .include "images/personagens/bomber_baixo.data"
 .include "images/personagens/bomber_esquerda.data"
 .include "images/personagens/bomber_direita.data"
+
+# .include "images/inimigo.data"
 
 # Músicas
 .include "audio/musica_fase1.data"
