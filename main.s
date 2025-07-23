@@ -43,7 +43,7 @@
 	BOMBER_POS: .half 24, 48
 
 	BOMBA: .word 0, 3000, 0, 1, 1, 500   # 1º Bomba colocada, 2º Intervalo da bomba (ms), 3º Tempo para controle da bomba,  4º posição X e 5º posição Y, 6º intervalo explosão (ms)
-	BOMBER_VIDA: .word 3, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
+	BOMBER_VIDA: .word 1, 510, 0, 0 	# 1º Qtd corações, 2º intervalo de dano, 3º espaço auxiliar, 4º status se já levou dano ou não
 	PONTUACAO: .word 0, 0 	# 1º pontuação, 2º espaço auxiliar
 
 # s11 = guarda o tempo para a Música
@@ -218,10 +218,6 @@ loop_go:
 	lw t0,0(t1)			
 	andi t0,t0,0x0001		
 	beq t0, zero, loop_go
-	lw a0, 4(t1)
-
-	li t0, '\n'
-	bne a0, t0, loop_go
 
 	j FIM_JOGO
 
@@ -273,12 +269,17 @@ FIM_JOGO:
 .include "images/mapa/fase_1/mapa_1.data"
 .include "images/mapa/fase_1/hard_block_1.data"
 .include "images/mapa/fase_1/soft_block_1.data"
+.include "images/mapa/fase_1/bomba_1.data"
+.include "images/mapa/fase_1/fogo_1.data"
+
 .include "images/mapa/mapa_de_colisao.data"
 
 # Fase 2
 .include "images/mapa/fase_2/mapa_2.data"
 .include "images/mapa/fase_2/hard_block_2.data"
 .include "images/mapa/fase_2/soft_block_2.data"
+.include "images/mapa/fase_2/bomba_2.data"
+.include "images/mapa/fase_2/fogo_2.data"
 
 # Bomberman
 .include "images/personagens/bomber_frente.data"
