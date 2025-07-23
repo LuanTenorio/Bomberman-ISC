@@ -70,11 +70,11 @@ SETUP:
 	li a2, 64
 	call SET_HARD_BLOCKS # Quando cada hardblock é setado, o softblock é setado junto
 	
-	la a0, inimigo_pos_1
-	call SET_INIMIGOS
+	# la a0, inimigo_pos_1
+	# call SET_INIMIGOS
 
-	la a0, inimigo_pos_2
-	call SET_INIMIGOS
+	# la a0, inimigo_pos_2
+	# call SET_INIMIGOS
 
 	# Tirando os soft blocks ao redor do spawn do bomberman
 	la t0, mapa_de_colisao
@@ -122,11 +122,8 @@ GAME_LOOP:
 	lw t1, 0(t0) # Carrega a vida do bomberman
 	beqz t1, GAME_OVER # Se a vida do bomberman for 0, game over
 
-	la a0, inimigo_pos_1
-	call MOVIMENTAR_INIMIGO
-
-	la a0, inimigo_pos_2
-	call MOVIMENTAR_INIMIGO
+	# la a0, inimigo_pos_1
+	# call MOVIMENTAR_INIMIGO
 
 	# Renderiza os hard blocks	
 	li a0, IMAGENS_ID_HARD_BLOCK
