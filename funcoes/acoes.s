@@ -295,6 +295,12 @@ VERIFICAR_BOMBA:
     li a3, 100        # Volume médio
     ecall
 
+	# Renderiza as explosões
+	la a0, IMAGENS_ID_FOGO
+	call SELECIONA_IMAGEM_PELO_MAPA
+	li a4, 4
+	call RENDERIZAR_MAPA_COLISAO
+
 	call EXPLODIR_BOMBA
 
 skip_eb:

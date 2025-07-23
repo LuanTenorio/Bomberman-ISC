@@ -10,7 +10,8 @@
 #	- ATUALIZA_MAPA_COLISAO
 
 .data
-.include "../images/mapa/vida.data"
+.include "../images/mapa/vida.data" 
+	AUXILIAR: .word 0, 0, 0, 0, 0
 
 # IMPORTS:
 .include "print_caractere.s" 		# Contêm função de imprimir caractere
@@ -302,6 +303,138 @@ skip_vv:
 
 	lw ra, 0(sp)         # restaura ra
 	addi sp, sp, 4       # libera os 4 bytes da stack
+	ret
+
+# ==============================
+# Função responsável por trocar certos elementos do mapa de colisão
+# ==============================
+ALTERA_MAPA_COLISAO:
+	addi sp, sp, -16
+	sw ra, 0(sp)
+    sw s4, 4(sp)    # salva registradores que serão usados
+    sw s1, 8(sp)
+    sw s2, 12(sp)
+
+    li s4, 1        # x inicial
+    mv s1, a3        # y inicial
+    li s2, 18       # x final (exclusive)
+    li s3, 14       # y final (exclusive)
+    
+loop_y_amc:
+    li s4, 1
+    
+loop_x_amc:
+	# Encontra o endereço na matriz de colisão
+    la t3, mapa_de_colisao
+    li t4, 19               # largura da matriz
+    mul t5, s1, t4          # y * largura
+    add t5, t5, s4          # (y * largura) + x
+	mv t0, t5			
+    slli t5, t5, 1          # * 2 (pois são half words)
+    add t3, t3, t5          # endereço final
+    
+    # ler valor atual
+    lh t6, 0(t3)
+
+	bne t6, a2, skip_amc  # se não for o tipo a ser alterado, pula
+
+	la t0, AUXILIAR
+	sw a0, 0(t0)
+	sw a1, 4(t0)  
+	sw a2, 8(t0) 
+	sw a3, 12(t0)  
+
+	# Sorteia um numero de 0 a 15
+	li a1, 16
+	li a7, 42
+	ecall
+	mv t4, a0
+
+	la t0, AUXILIAR
+	lw a0, 0(t0)
+	lw a1, 4(t0)  
+	lw a2, 8(t0) 
+	lw a3, 12(t0)  
+
+	bne t4, zero, skip_amc  # se não for 0, pula
+
+	mv t6, a1	
+	sh t6, 0(t3)  # escreve o novo valor na matriz de colisão
+	
+	mv a1, s4
+	mv a2, s1
+
+	j end_amc
+   
+skip_amc:
+    addi s4, s4, 1 			# próximo x
+    blt s4, s2, loop_x_amc      # continua se x < 18
+    
+    addi s1, s1, 1          # próximo y
+    blt s1, s3, loop_y_amc      # continua se y < 14
+    
+end_amc:
+    lw s2, 12(sp)
+    lw s1, 8(sp)
+    lw s4, 4(sp)
+    lw ra, 0(sp)
+    addi sp, sp, 16
+	ret
+
+ALTERA_CELULA_MAPA_COLISAO:
+	addi sp, sp, -16
+	sw ra, 0(sp)
+    sw s4, 4(sp)    # salva registradores que serão usados
+    sw s1, 8(sp)
+    sw s2, 12(sp)
+
+    mv s4, a1        # x inicial
+    mv s1, a2        # y inicial
+    
+	# Encontra o endereço na matriz de colisão
+    la t3, mapa_de_colisao
+    li t4, 19               # largura da matriz
+    mul t5, s1, t4          # y * largura
+    add t5, t5, s4          # (y * largura) + x
+    slli t5, t5, 1          # * 2 (pois são half words)
+    add t3, t3, t5          # endereço final
+    
+    # ler valor atual
+    sh a3, 0(t3)
+    
+    lw s2, 12(sp)
+    lw s1, 8(sp)
+    lw s4, 4(sp)
+    lw ra, 0(sp)
+    addi sp, sp, 16
+	ret
+
+PEGA_CELULA_MAPA_COLISAO:
+	addi sp, sp, -16
+	sw ra, 0(sp)
+    sw s4, 4(sp)    # salva registradores que serão usados
+    sw s1, 8(sp)
+    sw s2, 12(sp)
+
+    mv s4, a1        # x inicial
+    mv s1, a2        # y inicial
+    
+	# Encontra o endereço na matriz de colisão
+    la t3, mapa_de_colisao
+    li t4, 19               # largura da matriz
+    mul t5, s1, t4          # y * largura
+    add t5, t5, s4          # (y * largura) + x
+    slli t5, t5, 1          # * 2 (pois são half words)
+    add t3, t3, t5          # endereço final
+    
+    # ler valor atual
+    lh a0, 0(t3)
+    
+    lw s2, 12(sp)
+    lw s1, 8(sp)
+    lw s4, 4(sp)
+    lw ra, 0(sp)
+    addi sp, sp, 16
 	ret
 
 # ============================
