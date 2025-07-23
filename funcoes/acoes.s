@@ -248,10 +248,6 @@ SET_BOMBA:
 	lw t1, 0(t0) 
 	addi t1, t1, 1 
 	sw t1, 0(t0)
-	 
-	# Verifica se ganhou o jogo
-	li t2, 40
-	beq t1, t2, VITORIA # Se a pontuação for 40, Ganha o jogo 
 
 skip_set_bomba:
 	lw ra, 0(sp)       # restaura return address
@@ -421,6 +417,11 @@ next_eb1:
 	li t4, 2
 	bne t1, t4, next_eb2  	# Se a célula não for 2 (softblock), não altera
 	sh t6, 0(t3)		# Carrega o valor da célula da bomba
+	la t0, PONTUACAO
+	lw t0, 0(t0)
+	addi t0, t0, 5
+	la t4, PONTUACAO
+	sw t0, 0(t4)
 
 next_eb2:
 	# sprite de explosão (5) pode ser explodido

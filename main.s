@@ -116,11 +116,17 @@ GAME_LOOP:
 	call PRINT_MAPA
 	
 	call VERIFICAR_VIDA
+
 	call PRINT_PONTUACAO
 
 	la t0, BOMBER_VIDA
 	lw t1, 0(t0) # Carrega a vida do bomberman
 	beqz t1, GAME_OVER # Se a vida do bomberman for 0, game over
+
+	la t0, PONTUACAO
+	lw t0, 0(t0)
+	li t1, 50
+	bge t0, t1, VITORIA
 
 	# la a0, inimigo_pos_1
 	# call MOVIMENTAR_INIMIGO
@@ -177,6 +183,19 @@ GAME_LOOP:
 
 
 VITORIA:
+
+	# Zera o controlar de música para a música de gameover
+	la t0, CONTADOR_MUSICA
+	li t1, 0	
+	sw t1, 0(t0)
+
+	li a7, 30
+	ecall
+
+	mv t1, a0
+	sw t1, 4(t0)
+
+	# Vitória
 	la a0, win
 	li a1, 0
 	li a2, 0
@@ -184,6 +203,16 @@ VITORIA:
 	call PRINT
 	li a3, 0
 	call PRINT
+
+loop_go:
+	la a4, notas_vitoria
+	la a5, num_notas_vitoria
+	call TOCAR_MUSICA
+
+	li t1,0xFF200000		
+	lw t0,0(t1)			
+	andi t0,t0,0x0001		
+	beq t0, zero, loop_go
 
 	j FIM_JOGO
 	
@@ -245,8 +274,8 @@ EXECUTAR_ACAO:
 	ret
 
 FIM_JOGO:
-	# li a7, 10
-	# ecall
+	li a7, 10
+	ecall
 
 # IMPORT DE FUNÇÕES:
 .include "funcoes/funcoes_auxiliares.s"
@@ -292,3 +321,4 @@ FIM_JOGO:
 # Músicas
 .include "audio/musica_fase1.data"
 .include "audio/musica_game_over.data"
+.include "audio/musica_vitoria.data"
