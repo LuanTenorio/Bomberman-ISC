@@ -15,16 +15,12 @@
 	IMAGENS_MAPA_1:
         .word mapa_1,
         .word hard_block_1,
-        .word soft_block_1,
-        .word fogo_1,
-        .word bomba_1
+        .word soft_block_1
 
     IMAGENS_MAPA_2:
         .word mapa_2,
         .word hard_block_2,
-        .word soft_block_2,
-        .word fogo_2,
-        .word bomba_2
+        .word soft_block_2
 
     MAPAS:
         .word IMAGENS_MAPA_1
@@ -46,8 +42,6 @@
 .eqv IMAGENS_ID_MAPA, 0
 .eqv IMAGENS_ID_HARD_BLOCK, 1
 .eqv IMAGENS_ID_SOFT_BLOCK, 2
-.eqv IMAGENS_ID_FOGO, 3 # verificar e trocar uma uma fogo com pedaço transparente
-.eqv IMAGENS_ID_BOMBA, 4 # verificar e trocar uma uma bomba com pedaço transparente
 
 SETUP:
 	call SORTEAR_FASE
@@ -88,7 +82,7 @@ SETUP:
 	# Seta o timer que controla o intervalo de dano tomado
 	la t0, BOMBER_VIDA
 	sw a0, 8(t0)
-	
+
 GAME_LOOP: 
 	la a4, notas_fase1
 	la a5, num_notas_fase1
@@ -105,8 +99,7 @@ GAME_LOOP:
 	lw t1, 0(t0) # Carrega a vida do bomberman
 	beqz t1, GAME_OVER # Se a vida do bomberman for 0, game over
 
-	li a0, IMAGENS_ID_BOMBA
-	call SELECIONA_IMAGEM_PELO_MAPA
+	li a0, bomba
 	call VERIFICAR_BOMBA
 
 	call PRINT_PONTUACAO
@@ -124,8 +117,7 @@ GAME_LOOP:
 	call RENDERIZAR_MAPA_COLISAO
 
 	# Renderiza as bombas
-	la a0, IMAGENS_ID_BOMBA
-	call SELECIONA_IMAGEM_PELO_MAPA
+	la a0, bomba
 	li a4, 4
 	call RENDERIZAR_MAPA_COLISAO
 
@@ -135,8 +127,7 @@ GAME_LOOP:
 	call PRINT_BOMBERMAN
 	
 	# Renderiza as explosões
-	la a0, IMAGENS_ID_FOGO
-	call SELECIONA_IMAGEM_PELO_MAPA
+	la a0, fogo
 	li a4, 5
 	call RENDERIZAR_MAPA_COLISAO
 
@@ -153,6 +144,18 @@ GAME_LOOP:
 
 	j GAME_LOOP
 
+
+VITORIA:
+	la a0, win
+	li a1, 0
+	li a2, 0
+	li a3, 1
+	call PRINT
+	li a3, 0
+	call PRINT
+
+	j FIM_JOGO
+	
 GAME_OVER:
 
 	# Zera o controlar de música para a música de gameover
@@ -167,13 +170,15 @@ GAME_OVER:
 	sw t1, 4(t0)
 
 	# Game Over - TROCAR PARA TELA DE GAME OVER
-	la a0, mapa_1
+	la a0, game_over
 	li a1, 0
 	li a2, 0
 	li a3, 1
 	call PRINT
 	li a3, 0
 	call PRINT
+
+	j FIM_JOGO
 
 loop_go:
 	la a4, notas_game_over
@@ -189,10 +194,7 @@ loop_go:
 	li t0, '\n'
 	bne a0, t0, loop_go
 
-	li a7, 10
-	ecall # FIM 
-
-	j SETUP
+	j FIM_JOGO
 
 EXECUTAR_ACAO:
 	addi sp, sp, -4     # reserva espaço na pilha
@@ -216,7 +218,11 @@ EXECUTAR_ACAO:
 	lw ra, 4(sp)       # restaura return address
     addi sp, sp, 4     # desloca o stack pointer
 	ret
-	
+
+FIM_JOGO:
+	# li a7, 10
+	# ecall
+
 # IMPORT DE FUNÇÕES:
 .include "funcoes/funcoes_auxiliares.s"
 .include "funcoes/audio.s"
@@ -226,20 +232,22 @@ EXECUTAR_ACAO:
 # IMPORT DE IMAGES:
 .data
 
+# Fases
+.include "images/mapa/win.data"
+.include "images/mapa/game_over.data"
+.include "images/mapa/bomba.data"
+.include "images/mapa/fogo.data"
+
 #Fase 1
 .include "images/mapa/fase_1/mapa_1.data"
 .include "images/mapa/fase_1/hard_block_1.data"
 .include "images/mapa/fase_1/soft_block_1.data"
 .include "images/mapa/mapa_de_colisao.data"
-.include "images/mapa/fase_1/bomba_1.data"
-.include "images/mapa/fase_1/fogo_1.data"
 
 # Fase 2
 .include "images/mapa/fase_2/mapa_2.data"
 .include "images/mapa/fase_2/hard_block_2.data"
 .include "images/mapa/fase_2/soft_block_2.data"
-.include "images/mapa/fase_2/bomba_2.data"
-.include "images/mapa/fase_2/fogo_2.data"
 
 # Bomberman
 .include "images/personagens/bomber_frente.data"
