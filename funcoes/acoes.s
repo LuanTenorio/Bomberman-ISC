@@ -247,7 +247,11 @@ SET_BOMBA:
 	la t0, PONTUACAO
 	lw t1, 0(t0) 
 	addi t1, t1, 1 
-	sw t1, 0(t0) 
+	sw t1, 0(t0)
+	 
+	# Verifica se ganhou o jogo
+	li t2, 40
+	beq t1, t2, VITORIA # Se a pontuação for 40, Ganha o jogo 
 
 skip_set_bomba:
 	lw ra, 0(sp)       # restaura return address

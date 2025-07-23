@@ -88,7 +88,7 @@ SETUP:
 	# Seta o timer que controla o intervalo de dano tomado
 	la t0, BOMBER_VIDA
 	sw a0, 8(t0)
-	
+
 GAME_LOOP: 
 	la a4, notas_fase1
 	la a5, num_notas_fase1
@@ -153,6 +153,18 @@ GAME_LOOP:
 
 	j GAME_LOOP
 
+
+VITORIA:
+	la a0, win
+	li a1, 0
+	li a2, 0
+	li a3, 1
+	call PRINT
+	li a3, 0
+	call PRINT
+
+	j FIM_JOGO
+	
 GAME_OVER:
 
 	# Zera o controlar de música para a música de gameover
@@ -167,13 +179,15 @@ GAME_OVER:
 	sw t1, 4(t0)
 
 	# Game Over - TROCAR PARA TELA DE GAME OVER
-	la a0, mapa_1
+	la a0, game_over
 	li a1, 0
 	li a2, 0
 	li a3, 1
 	call PRINT
 	li a3, 0
 	call PRINT
+
+	j FIM_JOGO
 
 loop_go:
 	la a4, notas_game_over
@@ -189,10 +203,7 @@ loop_go:
 	li t0, '\n'
 	bne a0, t0, loop_go
 
-	li a7, 10
-	ecall # FIM 
-
-	j SETUP
+	j FIM_JOGO
 
 EXECUTAR_ACAO:
 	addi sp, sp, -4     # reserva espaço na pilha
@@ -216,7 +227,11 @@ EXECUTAR_ACAO:
 	lw ra, 4(sp)       # restaura return address
     addi sp, sp, 4     # desloca o stack pointer
 	ret
-	
+
+FIM_JOGO:
+	# li a7, 10
+	# ecall
+
 # IMPORT DE FUNÇÕES:
 .include "funcoes/funcoes_auxiliares.s"
 .include "funcoes/audio.s"
@@ -225,6 +240,10 @@ EXECUTAR_ACAO:
 	
 # IMPORT DE IMAGES:
 .data
+
+# Fases
+.include "images/mapa/win.data"
+.include "images/mapa/game_over.data"
 
 #Fase 1
 .include "images/mapa/fase_1/mapa_1.data"
